@@ -8,6 +8,16 @@ import {
 import apLogo from '../assets/ap-logo.png';
 import { API_URL, parseResponse } from '../config/api';
 
+// Facility Gallery Image Assets
+import smartClassroom from '../assets/facilities/smart-classroom.jpg';
+import computerLab from '../assets/facilities/computer-lab.jpg';
+import scienceLab from '../assets/facilities/science-lab.jpg';
+import library from '../assets/facilities/library.jpg';
+import sportsGround from '../assets/facilities/sports-ground.jpg';
+import midDayMeal from '../assets/facilities/mid-day-meal.jpg';
+import drinkingWater from '../assets/facilities/drinking-water.jpg';
+import digitalLearning from '../assets/facilities/digital-learning.jpg';
+
 export default function LoginPortal({ onLoginSuccess }) {
   const isPrincipalRoute = window.location.pathname === '/principal/login';
   const isOperatorRoute = window.location.pathname === '/operator/login';
@@ -78,50 +88,50 @@ export default function LoginPortal({ onLoginSuccess }) {
     {
       title: "Smart Classrooms",
       desc: "Equipped with interactive flat panels, digital resources, and multimedia capability for interactive visual learning.",
-      image: "https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&q=80&w=800",
+      image: smartClassroom,
       icon: Laptop
     },
     {
       title: "Computer Labs",
       desc: "State-of-the-art computers with broadband connectivity, teaching coding, basic computations, and digital literacy.",
-      image: "https://images.unsplash.com/photo-1562774053-f5a02f6a7c93?auto=format&fit=crop&q=80&w=800",
+      image: computerLab,
       icon: Laptop
     },
     {
-      title: "Science Laboratories",
+      title: "Science Labs",
       desc: "Fully equipped Physics, Chemistry, and Biology labs enabling practical experiments and inquiry-based research.",
-      image: "https://images.unsplash.com/photo-1518152006812-edab29b069ac?auto=format&fit=crop&q=80&w=800",
+      image: scienceLab,
       icon: Star
     },
     {
-      title: "School Libraries",
+      title: "Library",
       desc: "A rich repository of academic textbooks, reference materials, children's literature, and quiet study areas.",
-      image: "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?auto=format&fit=crop&q=80&w=800",
+      image: library,
       icon: BookOpen
     },
     {
       title: "Sports Grounds",
       desc: "Dedicated sports courts and fields fostering physical fitness, regular athletic training, and team development.",
-      image: "https://images.unsplash.com/photo-1541252260730-0412e8e2108e?auto=format&fit=crop&q=80&w=800",
+      image: sportsGround,
       icon: Award
     },
     {
       title: "Mid-Day Meal Program",
       desc: "Serving daily hot, hygienic, and nutritionally balanced lunches confirming to state welfare dietary standards.",
-      image: "https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&q=80&w=800",
+      image: midDayMeal,
       icon: Heart
     },
     {
       title: "Clean Drinking Water",
       desc: "Safe and chilled drinking water supply powered by modern RO filtration units located across the school campus.",
-      image: "https://images.unsplash.com/photo-1548839140-29a749e1cf4d?auto=format&fit=crop&q=80&w=800",
+      image: drinkingWater,
       icon: Droplet
     },
     {
-      title: "Green School Campus",
-      desc: "Eco-friendly landscaping, solar panels, and organic plantations fostering conservation awareness among students.",
-      image: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&q=80&w=800",
-      icon: Trees
+      title: "Digital Learning Center",
+      desc: "Access to online portals, e-books, self-paced learning courses, and digital academic records for comprehensive education.",
+      image: digitalLearning,
+      icon: Laptop
     }
   ];
 
@@ -492,6 +502,9 @@ export default function LoginPortal({ onLoginSuccess }) {
                     src={fac.image}
                     alt={fac.title}
                     loading="lazy"
+                    onError={(e) => {
+                      e.target.src = apLogo;
+                    }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
                   <div className="absolute bottom-3 left-3 bg-[#E8F5E9]/90 backdrop-blur-xs p-2 rounded-lg text-[#006B2D] border border-emerald-200/50">

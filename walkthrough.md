@@ -1,6 +1,6 @@
-# AP Government School ERP – Production Upgrade & Responsiveness Walkthrough
+# AP Government School ERP – Production Upgrade & Image Fix Walkthrough
 
-All requirements for the responsive upgrade, dropdown sorting, and smart attendance enhancements have been successfully completed, verified, built, and pushed to production.
+All requirements for the responsive upgrade, dropdown sorting, smart attendance enhancements, and local image gallery assets have been successfully completed, verified, built, and pushed to production.
 
 ---
 
@@ -37,31 +37,60 @@ All requirements for the responsive upgrade, dropdown sorting, and smart attenda
 ### E. Responsive Forms & Inputs
 - Adjusted modal grids and inputs (e.g. Operator student admission forms, teacher marks entry forms) from hardcoded double columns to single-column blocks on mobile screens and two-column blocks on desktop viewports.
 
+### F. Facility Gallery Image Fix (`LoginPortal.jsx`)
+- **Asset Creation**: Generated 8 high-fidelity static image assets for all school facilities and placed them under `frontend/src/assets/facilities/`:
+  - `smart-classroom.jpg`
+  - `computer-lab.jpg`
+  - `science-lab.jpg`
+  - `library.jpg`
+  - `sports-ground.jpg`
+  - `mid-day-meal.jpg`
+  - `drinking-water.jpg`
+  - `digital-learning.jpg`
+- **Vite Static Imports**: Refactored the `facilities` array in `LoginPortal.jsx` to statically import all assets using Vite imports. This resolves the loading failures associated with dynamic/external Unsplash URLs.
+- **Card Synchronization**: Matched cards precisely to the requested titles:
+  - Smart Classrooms
+  - Computer Labs
+  - Science Labs
+  - Library
+  - Sports Grounds
+  - Mid-Day Meal Program
+  - Clean Drinking Water
+  - Digital Learning Center
+- **OnError Fallback**: Implemented an `onError` image fallback in the rendering block, pointing to the local `apLogo` emblem to gracefully prevent broken image placeholders on low-bandwidth connections.
+
 ---
 
 ## 2. Production Deployment & Build Verification
 
 ### A. Frontend Compilation Success
-Executed the Vite production compilation inside the `frontend/` directory. The build completed with zero errors and clean logs:
+Executed the Vite production compilation inside the `frontend/` directory. All 8 facility images were successfully bundled:
 ```text
 vite v8.0.16 building client environment for production...
-transforming...✓ 1777 modules transformed.
+transforming...✓ 1785 modules transformed.
 rendering chunks...
-dist/index.html                     1.20 kB │ gzip:   0.65 kB
-dist/assets/ap-logo-CRQd-Jst.png  302.46 kB
-dist/assets/index-jmplP72k.css     55.32 kB │ gzip:   9.88 kB
-dist/assets/index-DO2_8xm4.js     427.70 kB │ gzip: 106.11 kB
-✓ built in 1.62s
+dist/index.html                              1.20 kB │ gzip:   0.65 kB
+dist/assets/ap-logo-CRQd-Jst.png           302.46 kB
+dist/assets/drinking-water-DTBpit4p.jpg    770.67 kB
+dist/assets/computer-lab-DdzAH-gV.jpg      813.27 kB
+dist/assets/science-lab-BSGqPqLa.jpg       842.06 kB
+dist/assets/sports-ground-C1FUQ39J.jpg     869.60 kB
+dist/assets/mid-day-meal-ThubxW2e.jpg      912.28 kB
+dist/assets/digital-learning-DlRn0OqC.jpg  913.42 kB
+dist/assets/smart-classroom-BsztGpTd.jpg   915.14 kB
+dist/assets/library-BPpnKwFI.jpg           980.94 kB
+dist/assets/index-jmplP72k.css              55.32 kB │ gzip:   9.88 kB
+dist/assets/index-JO2kanAq.js              427.01 kB │ gzip: 106.03 kB
+✓ built in 861ms
 ```
 
 ### B. Git Commit & Push
-All modifications were successfully committed and pushed to the remote repository.
-- **Commit Message**: `Teacher attendance improvements and responsive portal layout`
-- **Commit Hash**: `3f03b3fc9ea2e217dba47550548367f2344950fd`
+- **Commit Message**: `Fix facility gallery image assets`
+- **Commit Hash**: `d99b0e4d357854fb41b0f1987a94388d55e38e7f`
 - **Git Push Result**:
   ```text
   To https://github.com/mrguruvenkat-max/school-erp.git
-     4378d87..3f03b3f  main -> main
+     be306cb..d99b0e4  main -> main
   ```
 
 ---

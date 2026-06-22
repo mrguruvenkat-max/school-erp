@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import io from 'socket.io-client';
+import { API_URL } from './config/api';
 import LoginPortal from './portals/LoginPortal';
 import PrincipalPortal from './portals/PrincipalPortal';
 import TeacherPortal from './portals/TeacherPortal';
@@ -17,7 +18,7 @@ export default function App() {
   useEffect(() => {
     if (!token) return;
 
-    const socket = io('http://localhost:5000');
+    const socket = io(API_URL);
     
     socket.on('connect', () => {
       console.log('🔌 Connected to Socket.io broadcast server');

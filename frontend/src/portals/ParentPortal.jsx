@@ -4,6 +4,7 @@ import {
   BellRing, LogOut, ShieldAlert
 } from 'lucide-react';
 import apLogo from '../assets/ap-logo.png';
+import { API_URL, parseResponse } from '../config/api';
 
 export default function ParentPortal({ user, token, onLogout }) {
   const [activeTab, setActiveTab] = useState('DASHBOARD'); // DASHBOARD, ATTENDANCE, MARKS, NOTIFICATIONS
@@ -31,25 +32,17 @@ export default function ParentPortal({ user, token, onLogout }) {
     try {
       const studentId = user.studentId || 1;
       
-      const response = await fetch(`/api/students/profile/${studentId}`, { headers });
-      const data = await response.json();
-      if (response.ok) {
-        setChildData(data);
-      }
+      const response = await fetch(`${API_URL}/api/students/profile/${studentId}`, { headers });
+      const data = await parseResponse(response);
+      setChildData(data);
 
       // Load parent-specific notifications
-      const resNotifications = await fetch('/api/academic/notifications', { headers });
-      let personalAlerts = [];
-      if (resNotifications.ok) {
-        personalAlerts = await resNotifications.json();
-      }
+      const resNotifications = await fetch(`${API_URL}/api/academic/notifications`, { headers });
+      const personalAlerts = await parseResponse(resNotifications);
 
       // Load notice board global circulars
-      const resComp = await fetch('/api/academic/notices', { headers });
-      let list = [];
-      if (resComp.ok) {
-        list = await resComp.json();
-      }
+      const resComp = await fetch(`${API_URL}/api/academic/notices`, { headers });
+      const list = await parseResponse(resComp);
 
       // Combine notices and alerts, sorted by createdAt descending
       const combined = [...personalAlerts, ...list].sort(

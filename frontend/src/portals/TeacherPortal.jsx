@@ -4,6 +4,7 @@ import {
   Search, Download, Brain, LogOut, CheckCircle, XCircle, Send, X, CheckSquare, Award
 } from 'lucide-react';
 import apLogo from '../assets/ap-logo.png';
+import { API_URL, parseResponse } from '../config/api';
 
 export default function TeacherPortal({ user, token, onLogout }) {
   const [activeTab, setActiveTab] = useState('ATTENDANCE'); // ATTENDANCE, MARKS_ENTRY, MONITORING, REPORTS, ANALYTICS
@@ -78,43 +79,38 @@ export default function TeacherPortal({ user, token, onLogout }) {
     const headers = { 'Authorization': `Bearer ${token}` };
     try {
       // 1. Classes
-      const resClasses = await fetch('/api/academic/classes', { headers });
-      if (resClasses.ok) {
-        const classes = await resClasses.json();
-        setClassList(classes);
-        if (classes.length > 0) {
-          setSelectedClass(classes[0].id.toString());
-          setMarksClass(classes[0].id.toString());
-          setMonitoringClass(classes[0].id.toString());
-        }
+      const resClasses = await fetch(`${API_URL}/api/academic/classes`, { headers });
+      const classes = await parseResponse(resClasses);
+      setClassList(classes);
+      if (classes.length > 0) {
+        setSelectedClass(classes[0].id.toString());
+        setMarksClass(classes[0].id.toString());
+        setMonitoringClass(classes[0].id.toString());
       }
 
       // 2. Subjects
-      const resSubjects = await fetch('/api/academic/subjects', { headers });
-      if (resSubjects.ok) {
-        const subs = await resSubjects.json();
-        setSubjects(subs);
-        if (subs.length > 0) {
-          setSelectedSubject(subs[0].id.toString());
-          setMarksSubject(subs[0].id.toString());
-        }
+      const resSubjects = await fetch(`${API_URL}/api/academic/subjects`, { headers });
+      const subs = await parseResponse(resSubjects);
+      setSubjects(subs);
+      if (subs.length > 0) {
+        setSelectedSubject(subs[0].id.toString());
+        setMarksSubject(subs[0].id.toString());
       }
 
       // 3. Timetable/Schedule
-      const resTimetable = await fetch(`/api/academic/timetable/1`, { headers }); // mock Class ID 1 timetable
-      if (resTimetable.ok) {
-        const schedule = await resTimetable.json();
-        const formattedSchedule = schedule.map(s => ({
-          period: s.period,
-          subject: s.subject.name,
-          class: s.class.grade
-        }));
-        setTimetable(formattedSchedule);
-      }
+      const resTimetable = await fetch(`${API_URL}/api/academic/timetable/1`, { headers }); // mock Class ID 1 timetable
+      const schedule = await parseResponse(resTimetable);
+      const formattedSchedule = schedule.map(s => ({
+        period: s.period,
+        subject: s.subject.name,
+        class: s.class.grade
+      }));
+      setTimetable(formattedSchedule);
 
       // 4. Notices
-      const resNotices = await fetch('/api/academic/notices', { headers });
-      if (resNotices.ok) setNotices(await resNotices.json());
+      const resNotices = await fetch(`${API_URL}/api/academic/notices`, { headers });
+      const noticesData = await parseResponse(resNotices);
+      setNotices(noticesData);
 
     } catch (err) {
       console.error(err);
@@ -125,13 +121,11 @@ export default function TeacherPortal({ user, token, onLogout }) {
     const headers = { 'Authorization': `Bearer ${token}` };
     setError('');
     try {
-      const res = await fetch(`/api/attendance/list?classId=${selectedClass}&subjectId=${selectedSubject}&period=${selectedPeriod}&date=${selectedDate}`, { headers });
-      if (res.ok) {
-        const data = await res.json();
-        setAttendanceSheet(data.students);
-        setIsAttendanceUpdated(data.isUpdated);
-        setIsLocked(false); // default unlock for edits
-      }
+      const res = await fetch(`${API_URL}/api/attendance/list?classId=${selectedClass}&subjectId=${selectedSubject}&period=${selectedPeriod}&date=${selectedDate}`, { headers });
+      const data = await parseResponse(res);
+      setAttendanceSheet(data.students);
+      setIsAttendanceUpdated(data.isUpdated);
+      setIsLocked(false); // default unlock for edits
     } catch (err) {
       console.error(err);
     }
@@ -141,18 +135,16 @@ export default function TeacherPortal({ user, token, onLogout }) {
     const headers = { 'Authorization': `Bearer ${token}` };
     setMarksError('');
     try {
-      const res = await fetch(`/api/students/list?classId=${marksClass}`, { headers });
-      if (res.ok) {
-        const students = await res.json();
-        // Setup scores input registry
-        const sheet = students.map(s => ({
-          studentId: s.id,
-          rollNumber: s.rollNumber,
-          name: s.name,
-          marksObtained: ''
-        }));
-        setMarksSheet(sheet);
-      }
+      const res = await fetch(`${API_URL}/api/students/list?classId=${marksClass}`, { headers });
+      const students = await parseResponse(res);
+      // Setup scores input registry
+      const sheet = students.map(s => ({
+        studentId: s.id,
+        rollNumber: s.rollNumber,
+        name: s.name,
+        marksObtained: ''
+      }));
+      setMarksSheet(sheet);
     } catch (err) {
       console.error(err);
     }
@@ -162,11 +154,9 @@ export default function TeacherPortal({ user, token, onLogout }) {
     const headers = { 'Authorization': `Bearer ${token}` };
     setMonitoringLoading(true);
     try {
-      const res = await fetch(`/api/students/list?classId=${monitoringClass}`, { headers });
-      if (res.ok) {
-        const data = await res.json();
-        setMonitoringStudents(data);
-      }
+      const res = await fetch(`${API_URL}/api/students/list?classId=${monitoringClass}`, { headers });
+      const data = await parseResponse(res);
+      setMonitoringStudents(data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -177,11 +167,9 @@ export default function TeacherPortal({ user, token, onLogout }) {
   const handleViewStudentDetails = async (studentId) => {
     const headers = { 'Authorization': `Bearer ${token}` };
     try {
-      const res = await fetch(`/api/students/profile/${studentId}`, { headers });
-      if (res.ok) {
-        const details = await res.json();
-        setSelectedStudentDetails(details);
-      }
+      const res = await fetch(`${API_URL}/api/students/profile/${studentId}`, { headers });
+      const details = await parseResponse(res);
+      setSelectedStudentDetails(details);
     } catch (err) {
       console.error(err);
     }
@@ -220,7 +208,7 @@ export default function TeacherPortal({ user, token, onLogout }) {
 
     setError('');
     try {
-      const response = await fetch('/api/attendance/save', {
+      const response = await fetch(`${API_URL}/api/attendance/save`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -235,38 +223,34 @@ export default function TeacherPortal({ user, token, onLogout }) {
         })
       });
 
-      if (response.ok) {
-        const presentCount = attendanceSheet.filter(s => s.status === 'PRESENT').length;
-        const absentCount = attendanceSheet.filter(s => s.status === 'ABSENT').length;
-        const classGrade = classList.find(c => c.id.toString() === selectedClass.toString())?.grade || 'Class';
-        const formattedDate = new Date(selectedDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-');
-        const timeStr = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      await parseResponse(response);
+      const presentCount = attendanceSheet.filter(s => s.status === 'PRESENT').length;
+      const absentCount = attendanceSheet.filter(s => s.status === 'ABSENT').length;
+      const classGrade = classList.find(c => c.id.toString() === selectedClass.toString())?.grade || 'Class';
+      const formattedDate = new Date(selectedDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-');
+      const timeStr = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
-        setSaveSuccessBanner({
-          grade: classGrade,
-          date: formattedDate,
-          present: presentCount,
-          absent: absentCount
-        });
-        
-        setSubmissionTime(timeStr);
-        
-        // Auto reset after successful save: Return all students to PENDING (null)
-        setAttendanceSheet(prev => prev.map(s => ({ ...s, status: null })));
-        
-        setTimeout(() => {
-          setSaveSuccessBanner(null);
-        }, 8000);
+      setSaveSuccessBanner({
+        grade: classGrade,
+        date: formattedDate,
+        present: presentCount,
+        absent: absentCount
+      });
+      
+      setSubmissionTime(timeStr);
+      
+      // Auto reset after successful save: Return all students to PENDING (null)
+      setAttendanceSheet(prev => prev.map(s => ({ ...s, status: null })));
+      
+      setTimeout(() => {
+        setSaveSuccessBanner(null);
+      }, 8000);
 
-        // Refresh analytics / monitoring states
-        fetchInitialData();
-      } else {
-        const data = await response.json();
-        setError(data.error || "Failed to save attendance.");
-      }
+      // Refresh analytics / monitoring states
+      fetchInitialData();
     } catch (err) {
       console.error(err);
-      setError("Server connection failure saving attendance.");
+      setError(err.message || "Server connection failure saving attendance.");
     } finally {
       setShowConfirmModal(false);
     }
@@ -297,7 +281,7 @@ export default function TeacherPortal({ user, token, onLogout }) {
       }
 
       for (const student of marksSheet) {
-        await fetch('/api/academic/marks/upload', {
+        const response = await fetch(`${API_URL}/api/academic/marks/upload`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -311,6 +295,7 @@ export default function TeacherPortal({ user, token, onLogout }) {
             maxMarks: parseFloat(marksMaxMarks)
           })
         });
+        await parseResponse(response);
       }
 
       setMarksSuccess(true);
@@ -318,7 +303,7 @@ export default function TeacherPortal({ user, token, onLogout }) {
       setMarksSheet(prev => prev.map(s => ({ ...s, marksObtained: '' })));
     } catch (err) {
       console.error(err);
-      setMarksError("Internal database error saving student marks.");
+      setMarksError(err.message || "Internal database error saving student marks.");
     } finally {
       setMarksLoading(false);
     }
@@ -326,7 +311,7 @@ export default function TeacherPortal({ user, token, onLogout }) {
 
   const handleDownloadReport = (type, format) => {
     const filename = `${type}_report_${Date.now()}.${format === 'excel' ? 'xlsx' : 'pdf'}`;
-    const url = `/api/reports/${type}?classId=${selectedClass}&date=${selectedDate}&format=${format}`;
+    const url = `${API_URL}/api/reports/${type}?classId=${selectedClass}&date=${selectedDate}&format=${format}`;
     
     // Download trigger
     const link = document.createElement('a');

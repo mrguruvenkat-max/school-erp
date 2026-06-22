@@ -6,6 +6,7 @@ import {
   Star, Target, Globe, Droplet, Trees
 } from 'lucide-react';
 import apLogo from '../assets/ap-logo.png';
+import { API_URL, parseResponse } from '../config/api';
 
 export default function LoginPortal({ onLoginSuccess }) {
   const isPrincipalRoute = window.location.pathname === '/principal/login';
@@ -131,17 +132,13 @@ export default function LoginPortal({ onLoginSuccess }) {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Authentication failed. Please verify credentials.');
-      }
+      const data = await parseResponse(response);
 
       onLoginSuccess(data.accessToken, data.user);
     } catch (err) {
@@ -160,17 +157,13 @@ export default function LoginPortal({ onLoginSuccess }) {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/forgot-password', {
+      const response = await fetch(`${API_URL}/api/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: forgotRole, identifier: forgotIdentifier })
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Request failed. Please verify identifier.');
-      }
+      const data = await parseResponse(response);
 
       setForgotSuccess(true);
       setForgotMessage(data.message);
@@ -190,7 +183,7 @@ export default function LoginPortal({ onLoginSuccess }) {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/reset-password', {
+      const response = await fetch(`${API_URL}/api/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -200,11 +193,7 @@ export default function LoginPortal({ onLoginSuccess }) {
         })
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Password reset failed.');
-      }
+      const data = await parseResponse(response);
 
       setResetSuccess(true);
       setTimeout(() => {

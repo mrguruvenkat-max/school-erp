@@ -3,6 +3,7 @@ import {
   Users, PlusCircle, Edit, Trash2, Calendar, FileText, Award, LogOut, Check, X, ClipboardList, Key, CheckSquare, Upload, Download
 } from 'lucide-react';
 import apLogo from '../assets/ap-logo.png';
+import { API_URL, parseResponse } from '../config/api';
 
 export default function OperatorPortal({ user, token, onLogout }) {
   const [activeTab, setActiveTab] = useState('STUDENTS'); 
@@ -75,11 +76,13 @@ export default function OperatorPortal({ user, token, onLogout }) {
   const fetchMetadata = async () => {
     const headers = { 'Authorization': `Bearer ${token}` };
     try {
-      const resClasses = await fetch('/api/academic/classes', { headers });
-      if (resClasses.ok) setClassList(await resClasses.json());
+      const resClasses = await fetch(`${API_URL}/api/academic/classes`, { headers });
+      const classes = await parseResponse(resClasses);
+      setClassList(classes);
 
-      const resSubs = await fetch('/api/academic/subjects', { headers });
-      if (resSubs.ok) setSubjects(await resSubs.json());
+      const resSubs = await fetch(`${API_URL}/api/academic/subjects`, { headers });
+      const subs = await parseResponse(resSubs);
+      setSubjects(subs);
     } catch (err) {
       console.error(err);
     }
@@ -88,8 +91,12 @@ export default function OperatorPortal({ user, token, onLogout }) {
   const fetchStudents = async () => {
     const headers = { 'Authorization': `Bearer ${token}` };
     try {
-      const res = await fetch('/api/students/list', { headers });
-      if (res.ok) setStudents(await res.json());
+      const res = await fetch(
+        `${API_URL}/api/students/list`,
+        { headers }
+      );
+      const data = await parseResponse(res);
+      setStudents(data);
     } catch (err) {
       console.error(err);
     }
@@ -98,7 +105,7 @@ export default function OperatorPortal({ user, token, onLogout }) {
   // Student Admissions / Record Submits
   const handleStudentSubmit = async (e) => {
     e.preventDefault();
-    const endpoint = editingStudent ? '/api/students/update' : '/api/students/create';
+    const endpoint = editingStudent ? `${API_URL}/api/students/update` : `${API_URL}/api/students/create`;
     const body = editingStudent ? { id: editingStudent.id, ...studentForm } : studentForm;
     
     try {
@@ -110,20 +117,17 @@ export default function OperatorPortal({ user, token, onLogout }) {
         },
         body: JSON.stringify(body)
       });
-      const data = await res.json();
-      if (res.ok) {
-        setShowStudentModal(false);
-        setStudentForm({
-          id: '', rollNumber: '', name: '', classId: '1', dob: '', gender: 'MALE', parentName: '',
-          parentMobile: '', address: '', admissionNumber: ''
-        });
-        setEditingStudent(null);
-        fetchStudents();
-      } else {
-        alert(data.error || "Operation failed");
-      }
+      const data = await parseResponse(res);
+      setShowStudentModal(false);
+      setStudentForm({
+        id: '', rollNumber: '', name: '', classId: '1', dob: '', gender: 'MALE', parentName: '',
+        parentMobile: '', address: '', admissionNumber: ''
+      });
+      setEditingStudent(null);
+      fetchStudents();
     } catch (err) {
       console.error(err);
+      alert(err.message || "Operation failed");
     }
   };
 
@@ -131,18 +135,15 @@ export default function OperatorPortal({ user, token, onLogout }) {
   const handleDeleteStudent = async (id) => {
     if (!confirm("Are you sure you want to delete this student profile?")) return;
     try {
-      const res = await fetch(`/api/students/delete/${id}`, {
+      const res = await fetch(`${API_URL}/api/students/delete/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (res.ok) {
-        fetchStudents();
-      } else {
-        const data = await res.json();
-        alert(data.error || "Failed to delete student");
-      }
+      await parseResponse(res);
+      fetchStudents();
     } catch (err) {
       console.error(err);
+      alert(err.message || "Failed to delete student");
     }
   };
 
@@ -167,7 +168,7 @@ export default function OperatorPortal({ user, token, onLogout }) {
     setParentUpdateSuccess(false);
 
     try {
-      const res = await fetch('/api/students/update', {
+      const res = await fetch(`${API_URL}/api/students/update`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -179,15 +180,12 @@ export default function OperatorPortal({ user, token, onLogout }) {
           parentMobile: parentMobileInput
         })
       });
-      if (res.ok) {
-        setParentUpdateSuccess(true);
-        fetchStudents();
-      } else {
-        const data = await res.json();
-        alert(data.error || "Failed to update parent info.");
-      }
+      await parseResponse(res);
+      setParentUpdateSuccess(true);
+      fetchStudents();
     } catch (err) {
       console.error(err);
+      alert(err.message || "Failed to update parent info.");
     }
   };
 
@@ -212,7 +210,7 @@ export default function OperatorPortal({ user, token, onLogout }) {
     setCorrError('');
 
     try {
-      const res = await fetch('/api/attendance/correct', {
+      const res = await fetch(`${API_URL}/api/attendance/correct`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -226,16 +224,12 @@ export default function OperatorPortal({ user, token, onLogout }) {
         })
       });
 
-      const data = await res.json();
-      if (res.ok) {
-        setCorrSuccess(true);
-        fetchStudents();
-      } else {
-        setCorrError(data.error || "Failed to submit attendance correction.");
-      }
+      await parseResponse(res);
+      setCorrSuccess(true);
+      fetchStudents();
     } catch (err) {
       console.error(err);
-      setCorrError("Connection failure submitting attendance correction.");
+      setCorrError(err.message || "Failed to submit attendance correction.");
     }
   };
 
@@ -348,7 +342,7 @@ export default function OperatorPortal({ user, token, onLogout }) {
         }
 
         try {
-          const res = await fetch('/api/students/create', {
+          const res = await fetch(`${API_URL}/api/students/create`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -356,16 +350,11 @@ export default function OperatorPortal({ user, token, onLogout }) {
             },
             body: JSON.stringify(reqBody)
           });
-          if (res.ok) {
-            successCount++;
-          } else {
-            const data = await res.json();
-            failCount++;
-            errors.push(`Row ${i + 1}: ${data.error || "Unknown API error"}`);
-          }
+          await parseResponse(res);
+          successCount++;
         } catch (err) {
           failCount++;
-          errors.push(`Row ${i + 1}: Connection error`);
+          errors.push(`Row ${i + 1}: ${err.message || "Connection error"}`);
         }
       }
 
@@ -384,7 +373,7 @@ export default function OperatorPortal({ user, token, onLogout }) {
     setMarksSuccess(false);
 
     try {
-      const res = await fetch('/api/academic/marks/upload', {
+      const res = await fetch(`${API_URL}/api/academic/marks/upload`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -399,15 +388,12 @@ export default function OperatorPortal({ user, token, onLogout }) {
         })
       });
 
-      if (res.ok) {
-        setMarksSuccess(true);
-        setMarksObtained('');
-      } else {
-        const data = await res.json();
-        alert(data.error || "Marks upload failed.");
-      }
+      await parseResponse(res);
+      setMarksSuccess(true);
+      setMarksObtained('');
     } catch (err) {
       console.error(err);
+      alert(err.message || "Marks upload failed.");
     }
   };
 
@@ -417,7 +403,7 @@ export default function OperatorPortal({ user, token, onLogout }) {
     setTimetableSuccess(false);
 
     try {
-      const res = await fetch('/api/academic/timetable/update', {
+      const res = await fetch(`${API_URL}/api/academic/timetable/update`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -432,14 +418,11 @@ export default function OperatorPortal({ user, token, onLogout }) {
         })
       });
 
-      if (res.ok) {
-        setTimetableSuccess(true);
-      } else {
-        const data = await res.json();
-        alert(data.error || "Timetable update failed.");
-      }
+      await parseResponse(res);
+      setTimetableSuccess(true);
     } catch (err) {
       console.error(err);
+      alert(err.message || "Timetable update failed.");
     }
   };
 
@@ -449,7 +432,7 @@ export default function OperatorPortal({ user, token, onLogout }) {
     setCertResult(null);
 
     try {
-      const res = await fetch('/api/students/certificate/generate', {
+      const res = await fetch(`${API_URL}/api/students/certificate/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -458,14 +441,11 @@ export default function OperatorPortal({ user, token, onLogout }) {
         body: JSON.stringify({ studentId: certStudentId, type: certType })
       });
 
-      const data = await res.json();
-      if (res.ok) {
-        setCertResult(data.certificate);
-      } else {
-        alert(data.error || "Certificate generation failed.");
-      }
+      const data = await parseResponse(res);
+      setCertResult(data.certificate);
     } catch (err) {
       console.error(err);
+      alert(err.message || "Certificate generation failed.");
     }
   };
 

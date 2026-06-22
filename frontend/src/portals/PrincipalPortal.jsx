@@ -5,6 +5,7 @@ import {
   Download, PlusCircle, Check, X, ShieldAlert, Award, Coffee
 } from 'lucide-react';
 import apLogo from '../assets/ap-logo.png';
+import { API_URL, parseResponse } from '../config/api';
 
 export default function PrincipalPortal({ user, token, onLogout }) {
   const [activeTab, setActiveTab] = useState('DASHBOARD');
@@ -50,34 +51,37 @@ export default function PrincipalPortal({ user, token, onLogout }) {
     const headers = { 'Authorization': `Bearer ${token}` };
     try {
       // 1. Fetch Students
-      const resStud = await fetch('/api/students/list', { headers });
-      if (resStud.ok) setStudents(await resStud.json());
+      const resStud = await fetch(`${API_URL}/api/students/list`, { headers });
+      const studentsData = await parseResponse(resStud);
+      setStudents(studentsData);
 
       // 2. Fetch Teachers
-      const resTeach = await fetch('/api/academic/teachers', { headers });
-      if (resTeach.ok) setTeachers(await resTeach.json());
+      const resTeach = await fetch(`${API_URL}/api/academic/teachers`, { headers });
+      const teachersData = await parseResponse(resTeach);
+      setTeachers(teachersData);
 
       // 3. Fetch Classes
-      const resClasses = await fetch('/api/academic/classes', { headers });
-      if (resClasses.ok) {
-        const classes = await resClasses.json();
-        setClassList(classes);
-        if (classes.length > 0) {
-          setReportClass(classes[0].id.toString());
-        }
+      const resClasses = await fetch(`${API_URL}/api/academic/classes`, { headers });
+      const classes = await parseResponse(resClasses);
+      setClassList(classes);
+      if (classes.length > 0) {
+        setReportClass(classes[0].id.toString());
       }
 
       // 4. Fetch Notices
-      const resNotices = await fetch('/api/academic/notices', { headers });
-      if (resNotices.ok) setNotices(await resNotices.json());
+      const resNotices = await fetch(`${API_URL}/api/academic/notices`, { headers });
+      const noticesData = await parseResponse(resNotices);
+      setNotices(noticesData);
 
       // 5. Fetch AI Predictions
-      const resAiPred = await fetch('/api/ai/predictions', { headers });
-      if (resAiPred.ok) setAiPredictions(await resAiPred.json());
+      const resAiPred = await fetch(`${API_URL}/api/ai/predictions`, { headers });
+      const aiPredictionsData = await parseResponse(resAiPred);
+      setAiPredictions(aiPredictionsData);
 
       // 6. Fetch AI Suggestions
-      const resAiSug = await fetch('/api/ai/suggestions', { headers });
-      if (resAiSug.ok) setAiSuggestions(await resAiSug.json());
+      const resAiSug = await fetch(`${API_URL}/api/ai/suggestions`, { headers });
+      const aiSuggestionsData = await parseResponse(resAiSug);
+      setAiSuggestions(aiSuggestionsData);
 
       // Mock Audit Logs (Principal View)
       setAuditLogs([
@@ -97,7 +101,7 @@ export default function PrincipalPortal({ user, token, onLogout }) {
     setNoticeSuccess(false);
 
     try {
-      const response = await fetch('/api/academic/notices', {
+      const response = await fetch(`${API_URL}/api/academic/notices`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -106,16 +110,16 @@ export default function PrincipalPortal({ user, token, onLogout }) {
         body: JSON.stringify({ title: noticeTitle, content: noticeContent })
       });
 
-      if (response.ok) {
-        setNoticeTitle('');
-        setNoticeContent('');
-        setNoticeSuccess(true);
-        // refresh notice list
-        const resNotices = await fetch('/api/academic/notices', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (resNotices.ok) setNotices(await resNotices.json());
-      }
+      await parseResponse(response);
+      setNoticeTitle('');
+      setNoticeContent('');
+      setNoticeSuccess(true);
+      // refresh notice list
+      const resNotices = await fetch(`${API_URL}/api/academic/notices`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const noticesData = await parseResponse(resNotices);
+      setNotices(noticesData);
     } catch (err) {
       console.error(err);
     }
@@ -127,7 +131,7 @@ export default function PrincipalPortal({ user, token, onLogout }) {
     setCertResult(null);
 
     try {
-      const response = await fetch('/api/students/certificate/generate', {
+      const response = await fetch(`${API_URL}/api/students/certificate/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -136,20 +140,17 @@ export default function PrincipalPortal({ user, token, onLogout }) {
         body: JSON.stringify({ studentId: certStudentId, type: certType })
       });
 
-      const data = await response.json();
-      if (response.ok) {
-        setCertResult(data.certificate);
-      } else {
-        alert(data.error || "Failed to generate certificate");
-      }
+      const data = await parseResponse(response);
+      setCertResult(data.certificate);
     } catch (err) {
       console.error(err);
+      alert(err.message || "Failed to generate certificate");
     }
   };
 
   // Generate Reports
   const handleDownloadReport = () => {
-    let url = `/api/reports/${reportType}?format=${reportFormat}`;
+    let url = `${API_URL}/api/reports/${reportType}?format=${reportFormat}`;
     if (reportType === 'daily-attendance' || reportType === 'monthly-attendance' || reportType === 'student-performance') {
       url += `&classId=${reportClass}`;
     }

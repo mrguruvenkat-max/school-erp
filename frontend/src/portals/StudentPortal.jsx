@@ -4,6 +4,7 @@ import {
   MessageSquare, BellRing, LogOut, CheckCircle, XCircle, Send
 } from 'lucide-react';
 import apLogo from '../assets/ap-logo.png';
+import { API_URL, parseResponse } from '../config/api';
 
 export default function StudentPortal({ user, token, onLogout }) {
   const [activeTab, setActiveTab] = useState('DASHBOARD'); // DASHBOARD, ATTENDANCE, MARKS, TIMETABLE, COMPLAINTS
@@ -37,19 +38,19 @@ export default function StudentPortal({ user, token, onLogout }) {
   const fetchStudentData = async () => {
     const headers = { 'Authorization': `Bearer ${token}` };
     try {
-      const response = await fetch(`/api/students/profile/${user.studentId || 1}`, { headers });
-      const data = await response.json();
-      if (response.ok) {
-        setProfileData(data);
-      }
+      const response = await fetch(`${API_URL}/api/students/profile/${user.studentId || 1}`, { headers });
+      const data = await parseResponse(response);
+      setProfileData(data);
 
       // Fetch complaints
-      const resComp = await fetch('/api/complaints', { headers });
-      if (resComp.ok) setMyComplaints(await resComp.json());
+      const resComp = await fetch(`${API_URL}/api/complaints`, { headers });
+      const complaints = await parseResponse(resComp);
+      setMyComplaints(complaints);
 
       // Fetch Notices
-      const resNot = await fetch('/api/academic/notices', { headers });
-      if (resNot.ok) setNotices(await resNot.json());
+      const resNot = await fetch(`${API_URL}/api/academic/notices`, { headers });
+      const noticesData = await parseResponse(resNot);
+      setNotices(noticesData);
     } catch (err) {
       console.error(err);
     }
@@ -60,7 +61,7 @@ export default function StudentPortal({ user, token, onLogout }) {
     setComplaintSuccess(false);
 
     try {
-      const response = await fetch('/api/complaints', {
+      const response = await fetch(`${API_URL}/api/complaints`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -69,15 +70,15 @@ export default function StudentPortal({ user, token, onLogout }) {
         body: JSON.stringify({ type: complaintType, details: complaintDetails })
       });
 
-      if (response.ok) {
-        setComplaintDetails('');
-        setComplaintSuccess(true);
-        // refresh list
-        const resComp = await fetch('/api/complaints', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (resComp.ok) setMyComplaints(await resComp.json());
-      }
+      await parseResponse(response);
+      setComplaintDetails('');
+      setComplaintSuccess(true);
+      // refresh list
+      const resComp = await fetch(`${API_URL}/api/complaints`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const complaints = await parseResponse(resComp);
+      setMyComplaints(complaints);
     } catch (err) {
       console.error(err);
     }

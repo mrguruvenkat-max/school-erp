@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { 
   User, Calendar, GraduationCap, ClipboardList, 
-  MessageSquare, BellRing, LogOut, CheckCircle, XCircle, Send
+  MessageSquare, BellRing, LogOut, CheckCircle, XCircle, Send, Menu, X
 } from 'lucide-react';
 import apLogo from '../assets/ap-logo.png';
 import { API_URL, parseResponse } from '../config/api';
 
 export default function StudentPortal({ user, token, onLogout }) {
   const [activeTab, setActiveTab] = useState('DASHBOARD'); // DASHBOARD, ATTENDANCE, MARKS, TIMETABLE, COMPLAINTS
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [profileData, setProfileData] = useState(null);
   
   // Complaint Form
@@ -137,14 +138,14 @@ export default function StudentPortal({ user, token, onLogout }) {
     <div className="flex h-screen bg-slate-50 font-sans overflow-hidden">
       
       {/* SIDEBAR */}
-      <aside className="hidden md:flex flex-col w-64 bg-[#004D20] text-white p-6 shadow-xl z-20 border-r border-[#D4AF37]/20">
-        <div className="flex items-center space-x-3 mb-8">
+      <aside className="hidden md:flex flex-col lg:w-64 md:w-20 bg-[#004D20] text-white p-4 lg:p-6 shadow-xl z-20 border-r border-[#D4AF37]/20 shrink-0 transition-all duration-300">
+        <div className="flex items-center space-x-3 mb-8 justify-center lg:justify-start">
           <img
-            className="h-10 w-auto"
+            className="h-10 w-auto shrink-0"
             src={apLogo}
             alt="Emblem"
           />
-          <div>
+          <div className="hidden lg:block">
             <h1 className="font-extrabold text-sm tracking-wider">AP STUDENT SIS</h1>
             <span className="text-xs text-[#D4AF37] font-semibold uppercase">{user.role}</span>
           </div>
@@ -153,62 +154,68 @@ export default function StudentPortal({ user, token, onLogout }) {
         <nav className="flex-1 space-y-2">
           <button 
             onClick={() => setActiveTab('DASHBOARD')}
-            className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+            className={`w-full flex items-center lg:space-x-3 px-3 py-2.5 lg:px-4 rounded-lg text-sm font-semibold transition-all cursor-pointer justify-center lg:justify-start ${
               activeTab === 'DASHBOARD' ? 'bg-[#006B2D] text-white shadow-md border border-[#D4AF37]/20' : 'text-slate-300 hover:bg-[#138A36]/30'
             }`}
+            title="My Profile"
           >
-            <User size={18} />
-            <span>My Profile</span>
+            <User size={18} className="shrink-0" />
+            <span className="hidden lg:inline">My Profile</span>
           </button>
 
           <button 
             onClick={() => setActiveTab('ATTENDANCE')}
-            className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+            className={`w-full flex items-center lg:space-x-3 px-3 py-2.5 lg:px-4 rounded-lg text-sm font-semibold transition-all cursor-pointer justify-center lg:justify-start ${
               activeTab === 'ATTENDANCE' ? 'bg-[#006B2D] text-white shadow-md border border-[#D4AF37]/20' : 'text-slate-300 hover:bg-[#138A36]/30'
             }`}
+            title="Attendance Calendar"
           >
-            <Calendar size={18} />
-            <span>Attendance Calendar</span>
+            <Calendar size={18} className="shrink-0" />
+            <span className="hidden lg:inline">Attendance Calendar</span>
           </button>
 
           <button 
             onClick={() => setActiveTab('MARKS')}
-            className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+            className={`w-full flex items-center lg:space-x-3 px-3 py-2.5 lg:px-4 rounded-lg text-sm font-semibold transition-all cursor-pointer justify-center lg:justify-start ${
               activeTab === 'MARKS' ? 'bg-[#006B2D] text-white shadow-md border border-[#D4AF37]/20' : 'text-slate-300 hover:bg-[#138A36]/30'
             }`}
+            title="Academic Performance"
           >
-            <GraduationCap size={18} />
-            <span>Academic Performance</span>
+            <GraduationCap size={18} className="shrink-0" />
+            <span className="hidden lg:inline">Academic Performance</span>
           </button>
 
           <button 
             onClick={() => setActiveTab('TIMETABLE')}
-            className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+            className={`w-full flex items-center lg:space-x-3 px-3 py-2.5 lg:px-4 rounded-lg text-sm font-semibold transition-all cursor-pointer justify-center lg:justify-start ${
               activeTab === 'TIMETABLE' ? 'bg-[#006B2D] text-white shadow-md border border-[#D4AF37]/20' : 'text-slate-300 hover:bg-[#138A36]/30'
             }`}
+            title="Class Timetable"
           >
-            <ClipboardList size={18} />
-            <span>Class Timetable</span>
+            <ClipboardList size={18} className="shrink-0" />
+            <span className="hidden lg:inline">Class Timetable</span>
           </button>
 
           <button 
             onClick={() => setActiveTab('COMPLAINTS')}
-            className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+            className={`w-full flex items-center lg:space-x-3 px-3 py-2.5 lg:px-4 rounded-lg text-sm font-semibold transition-all cursor-pointer justify-center lg:justify-start ${
               activeTab === 'COMPLAINTS' ? 'bg-[#006B2D] text-white shadow-md border border-[#D4AF37]/20' : 'text-slate-300 hover:bg-[#138A36]/30'
             }`}
+            title="Feedback & Complaints"
           >
-            <MessageSquare size={18} />
-            <span>Feedback & Complaints</span>
+            <MessageSquare size={18} className="shrink-0" />
+            <span className="hidden lg:inline">Feedback & Complaints</span>
           </button>
         </nav>
 
         <div className="pt-6 border-t border-emerald-800">
           <button 
             onClick={onLogout}
-            className="w-full flex items-center space-x-3 px-4 py-2 rounded-lg text-sm font-semibold text-rose-300 hover:bg-rose-950/30 cursor-pointer"
+            className="w-full flex items-center lg:space-x-3 px-3 py-2 lg:px-4 rounded-lg text-sm font-semibold text-rose-300 hover:bg-rose-950/30 cursor-pointer justify-center lg:justify-start"
+            title="Sign Out"
           >
-            <LogOut size={18} />
-            <span>Sign Out</span>
+            <LogOut size={18} className="shrink-0" />
+            <span className="hidden lg:inline">Sign Out</span>
           </button>
         </div>
       </aside>
@@ -218,13 +225,21 @@ export default function StudentPortal({ user, token, onLogout }) {
         
         {/* HEADER BAR */}
         <header className="bg-white border-b border-slate-200 py-4 px-6 flex justify-between items-center shadow-xs">
-          <div>
-            <h2 className="text-xl font-bold text-[#006B2D]">
-              Welcome, {student.name}
-            </h2>
-            <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">
-              Roll No: {student.rollNumber} • Class {student.class.grade}
-            </p>
+          <div className="flex items-center space-x-3">
+            <button 
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="md:hidden p-1.5 rounded-lg text-[#006B2D] hover:bg-slate-100 cursor-pointer"
+            >
+              <Menu size={20} />
+            </button>
+            <div>
+              <h2 className="text-xl font-bold text-[#006B2D]">
+                Welcome, {student.name}
+              </h2>
+              <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">
+                Roll No: {student.rollNumber} • Class {student.class.grade}
+              </p>
+            </div>
           </div>
           
           <div className="flex items-center space-x-4">
@@ -243,7 +258,7 @@ export default function StudentPortal({ user, token, onLogout }) {
           {activeTab === 'DASHBOARD' && (
             <div className="space-y-6">
               {/* Statistics Overview Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between text-left transition duration-300 hover:border-[#006B2D] hover:shadow-md">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Attendance %</span>
                   <span className="text-xl font-black text-[#006B2D] mt-1">{student.attendancePercentage}%</span>
@@ -552,6 +567,86 @@ export default function StudentPortal({ user, token, onLogout }) {
 
         </div>
       </main>
+      {/* MOBILE HAMBURGER DRAWER */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 flex md:hidden">
+          <div 
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setIsMobileMenuOpen(false)}
+          ></div>
+          <div className="relative flex flex-col w-64 max-w-xs bg-[#004D20] text-white p-6 shadow-2xl animate-slide-in">
+            <button 
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="absolute top-4 right-4 text-slate-350 hover:text-white cursor-pointer"
+            >
+              <X size={20} />
+            </button>
+            <div className="flex items-center space-x-3 mb-8">
+              <img className="h-10 w-auto" src={apLogo} alt="Emblem" />
+              <div>
+                <h1 className="font-extrabold text-sm tracking-wider">AP STUDENT SIS</h1>
+                <span className="text-xs text-[#D4AF37] font-semibold uppercase">{user.role}</span>
+              </div>
+            </div>
+            <nav className="flex-1 space-y-2">
+              <button 
+                onClick={() => { setActiveTab('DASHBOARD'); setIsMobileMenuOpen(false); }}
+                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                  activeTab === 'DASHBOARD' ? 'bg-[#006B2D] text-white shadow-md border border-[#D4AF37]/20' : 'text-slate-300 hover:bg-[#138A36]/30'
+                }`}
+              >
+                <User size={18} />
+                <span>My Profile</span>
+              </button>
+              <button 
+                onClick={() => { setActiveTab('ATTENDANCE'); setIsMobileMenuOpen(false); }}
+                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                  activeTab === 'ATTENDANCE' ? 'bg-[#006B2D] text-white shadow-md border border-[#D4AF37]/20' : 'text-slate-300 hover:bg-[#138A36]/30'
+                }`}
+              >
+                <Calendar size={18} />
+                <span>Attendance Calendar</span>
+              </button>
+              <button 
+                onClick={() => { setActiveTab('MARKS'); setIsMobileMenuOpen(false); }}
+                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                  activeTab === 'MARKS' ? 'bg-[#006B2D] text-white shadow-md border border-[#D4AF37]/20' : 'text-slate-300 hover:bg-[#138A36]/30'
+                }`}
+              >
+                <GraduationCap size={18} />
+                <span>Academic Performance</span>
+              </button>
+              <button 
+                onClick={() => { setActiveTab('TIMETABLE'); setIsMobileMenuOpen(false); }}
+                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                  activeTab === 'TIMETABLE' ? 'bg-[#006B2D] text-white shadow-md border border-[#D4AF37]/20' : 'text-slate-300 hover:bg-[#138A36]/30'
+                }`}
+              >
+                <ClipboardList size={18} />
+                <span>Class Timetable</span>
+              </button>
+              <button 
+                onClick={() => { setActiveTab('COMPLAINTS'); setIsMobileMenuOpen(false); }}
+                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                  activeTab === 'COMPLAINTS' ? 'bg-[#006B2D] text-white shadow-md border border-[#D4AF37]/20' : 'text-slate-300 hover:bg-[#138A36]/30'
+                }`}
+              >
+                <MessageSquare size={18} />
+                <span>Feedback & Complaints</span>
+              </button>
+            </nav>
+            <div className="pt-6 border-t border-emerald-800">
+              <button 
+                onClick={onLogout}
+                className="w-full flex items-center space-x-3 px-4 py-2 rounded-lg text-sm font-semibold text-rose-300 hover:bg-rose-950/30 cursor-pointer"
+              >
+                <LogOut size={18} />
+                <span>Sign Out</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

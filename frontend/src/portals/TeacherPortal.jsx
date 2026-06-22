@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   User, Calendar, GraduationCap, ClipboardList, 
-  Search, Download, Brain, LogOut, CheckCircle, XCircle, Send, X, CheckSquare, Award
+  Search, Download, Brain, LogOut, CheckCircle, XCircle, Send, X, CheckSquare, Award, Menu
 } from 'lucide-react';
 import apLogo from '../assets/ap-logo.png';
 import { API_URL, parseResponse } from '../config/api';
@@ -9,6 +9,7 @@ import { API_URL, parseResponse } from '../config/api';
 export default function TeacherPortal({ user, token, onLogout }) {
   const [activeTab, setActiveTab] = useState('ATTENDANCE'); // ATTENDANCE, MARKS_ENTRY, MONITORING, REPORTS, ANALYTICS
   const [classList, setClassList] = useState([]);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [subjects, setSubjects] = useState([]);
   const [timetable, setTimetable] = useState([]);
   const [attendanceSheet, setAttendanceSheet] = useState([]);
@@ -81,11 +82,12 @@ export default function TeacherPortal({ user, token, onLogout }) {
       // 1. Classes
       const resClasses = await fetch(`${API_URL}/api/academic/classes`, { headers });
       const classes = await parseResponse(resClasses);
-      setClassList(classes);
-      if (classes.length > 0) {
-        setSelectedClass(classes[0].id.toString());
-        setMarksClass(classes[0].id.toString());
-        setMonitoringClass(classes[0].id.toString());
+      const sortedClasses = [...classes].sort((a, b) => a.id - b.id);
+      setClassList(sortedClasses);
+      if (sortedClasses.length > 0) {
+        setSelectedClass(sortedClasses[0].id.toString());
+        setMarksClass(sortedClasses[0].id.toString());
+        setMonitoringClass(sortedClasses[0].id.toString());
       }
 
       // 2. Subjects
@@ -182,15 +184,26 @@ export default function TeacherPortal({ user, token, onLogout }) {
     );
   };
 
+  // Toggle individual student status (PRESENT <-> ABSENT)
+  const toggleStatus = (studentId) => {
+    setAttendanceSheet(prev => 
+      prev.map(s => {
+        if (s.studentId === studentId) {
+          const nextStatus = s.status === 'PRESENT' ? 'ABSENT' : 'PRESENT';
+          return { ...s, status: nextStatus };
+        }
+        return s;
+      })
+    );
+  };
+
   // Attendance Action Buttons
   const handleSelectAllPresent = () => {
     setAttendanceSheet(prev => prev.map(s => ({ ...s, status: 'PRESENT' })));
   };
 
   const handleMarkAbsenteesOnly = () => {
-    setAttendanceSheet(prev => 
-      prev.map(s => s.status === 'ABSENT' ? s : { ...s, status: 'PRESENT' })
-    );
+    setAttendanceSheet(prev => prev.map(s => ({ ...s, status: 'PRESENT' })));
   };
 
   const handleClearAll = () => {
@@ -322,18 +335,23 @@ export default function TeacherPortal({ user, token, onLogout }) {
     document.body.removeChild(link);
   };
 
+  const sortedClasses = [...classList].sort((a, b) => a.id - b.id);
+  const presentCount = attendanceSheet.filter(s => s.status === 'PRESENT').length;
+  const absentCount = attendanceSheet.filter(s => s.status === 'ABSENT').length;
+  const totalCount = attendanceSheet.length;
+
   return (
     <div className="flex h-screen bg-slate-50 font-sans overflow-hidden">
       
       {/* SIDEBAR */}
-      <aside className="hidden md:flex flex-col w-64 bg-[#004D20] text-white p-6 shadow-xl z-20 border-r border-[#D4AF37]/20">
-        <div className="flex items-center space-x-3 mb-8">
+      <aside className="hidden md:flex flex-col lg:w-64 md:w-20 bg-[#004D20] text-white p-4 lg:p-6 shadow-xl z-20 border-r border-[#D4AF37]/20 shrink-0 transition-all duration-300">
+        <div className="flex items-center space-x-3 mb-8 justify-center lg:justify-start">
           <img
-            className="h-10 w-auto"
+            className="h-10 w-auto shrink-0"
             src={apLogo}
             alt="Emblem"
           />
-          <div>
+          <div className="hidden lg:block">
             <h1 className="font-extrabold text-sm tracking-wider">AP EDU TEACHER</h1>
             <span className="text-xs text-[#D4AF37] font-semibold uppercase">{user.role}</span>
           </div>
@@ -342,52 +360,57 @@ export default function TeacherPortal({ user, token, onLogout }) {
         <nav className="flex-1 space-y-2">
           <button 
             onClick={() => setActiveTab('ATTENDANCE')}
-            className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`w-full flex items-center lg:space-x-3 px-3 py-2.5 lg:px-4 rounded-lg text-xs font-bold transition-all cursor-pointer justify-center lg:justify-start ${
               activeTab === 'ATTENDANCE' ? 'bg-[#006B2D] text-white shadow-md border border-[#D4AF37]/20' : 'text-slate-300 hover:bg-[#138A36]/30'
             }`}
+            title="Smart Attendance"
           >
-            <CheckSquare size={16} />
-            <span>Smart Attendance</span>
+            <CheckSquare size={16} className="shrink-0" />
+            <span className="hidden lg:inline">Smart Attendance</span>
           </button>
 
           <button 
             onClick={() => setActiveTab('MARKS_ENTRY')}
-            className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`w-full flex items-center lg:space-x-3 px-3 py-2.5 lg:px-4 rounded-lg text-xs font-bold transition-all cursor-pointer justify-center lg:justify-start ${
               activeTab === 'MARKS_ENTRY' ? 'bg-[#006B2D] text-white shadow-md border border-[#D4AF37]/20' : 'text-slate-300 hover:bg-[#138A36]/30'
             }`}
+            title="Marks Entry"
           >
-            <Award size={16} />
-            <span>Marks Entry</span>
+            <Award size={16} className="shrink-0" />
+            <span className="hidden lg:inline">Marks Entry</span>
           </button>
 
           <button 
             onClick={() => setActiveTab('MONITORING')}
-            className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`w-full flex items-center lg:space-x-3 px-3 py-2.5 lg:px-4 rounded-lg text-xs font-bold transition-all cursor-pointer justify-center lg:justify-start ${
               activeTab === 'MONITORING' ? 'bg-[#006B2D] text-white shadow-md border border-[#D4AF37]/20' : 'text-slate-300 hover:bg-[#138A36]/30'
             }`}
+            title="Student Monitoring"
           >
-            <Search size={16} />
-            <span>Student Monitoring</span>
+            <Search size={16} className="shrink-0" />
+            <span className="hidden lg:inline">Student Monitoring</span>
           </button>
 
           <button 
             onClick={() => setActiveTab('REPORTS')}
-            className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`w-full flex items-center lg:space-x-3 px-3 py-2.5 lg:px-4 rounded-lg text-xs font-bold transition-all cursor-pointer justify-center lg:justify-start ${
               activeTab === 'REPORTS' ? 'bg-[#006B2D] text-white shadow-md border border-[#D4AF37]/20' : 'text-slate-300 hover:bg-[#138A36]/30'
             }`}
+            title="Download Reports"
           >
-            <Download size={16} />
-            <span>Download Reports</span>
+            <Download size={16} className="shrink-0" />
+            <span className="hidden lg:inline">Download Reports</span>
           </button>
         </nav>
 
         <div className="pt-6 border-t border-emerald-800">
           <button 
             onClick={onLogout}
-            className="w-full flex items-center space-x-3 px-4 py-2 rounded-lg text-sm font-semibold text-rose-300 hover:bg-rose-950/30 cursor-pointer"
+            className="w-full flex items-center lg:space-x-3 px-3 py-2 lg:px-4 rounded-lg text-sm font-semibold text-rose-300 hover:bg-rose-950/30 cursor-pointer justify-center lg:justify-start"
+            title="Sign Out"
           >
-            <LogOut size={18} />
-            <span>Sign Out</span>
+            <LogOut size={18} className="shrink-0" />
+            <span className="hidden lg:inline">Sign Out</span>
           </button>
         </div>
       </aside>
@@ -397,16 +420,24 @@ export default function TeacherPortal({ user, token, onLogout }) {
         
         {/* HEADER BAR */}
         <header className="bg-white border-b border-slate-200 py-4 px-6 flex justify-between items-center shadow-xs">
-          <div>
-            <h2 className="text-xl font-bold text-[#006B2D]">
-              {activeTab === 'MARKS_ENTRY' ? 'Marks Registry' : 
-               activeTab === 'MONITORING' ? 'Student Performance Monitor' : 
-               activeTab === 'REPORTS' ? 'Reports Center' : 
-               activeTab.charAt(0) + activeTab.slice(1).toLowerCase()}
-            </h2>
-            <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">
-              {user.name} • Teacher Portal
-            </p>
+          <div className="flex items-center space-x-3">
+            <button 
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="md:hidden p-1.5 rounded-lg text-[#006B2D] hover:bg-slate-100 cursor-pointer"
+            >
+              <Menu size={20} />
+            </button>
+            <div>
+              <h2 className="text-xl font-bold text-[#006B2D]">
+                {activeTab === 'MARKS_ENTRY' ? 'Marks Registry' : 
+                 activeTab === 'MONITORING' ? 'Student Performance Monitor' : 
+                 activeTab === 'REPORTS' ? 'Reports Center' : 
+                 activeTab.charAt(0) + activeTab.slice(1).toLowerCase()}
+              </h2>
+              <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">
+                {user.name} • Teacher Portal
+              </p>
+            </div>
           </div>
           
           <div className="flex items-center space-x-4">
@@ -436,8 +467,8 @@ export default function TeacherPortal({ user, token, onLogout }) {
                     onChange={(e) => setSelectedClass(e.target.value)}
                     className="block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm focus:outline-none focus:ring-[#006B2D]"
                   >
-                    {classList.map(c => (
-                      <option key={c.id} value={c.id}>{c.grade}</option>
+                    {sortedClasses.map(cls => (
+                      <option key={cls.id} value={cls.id}>{cls.grade}</option>
                     ))}
                   </select>
                 </div>
@@ -551,56 +582,144 @@ export default function TeacherPortal({ user, token, onLogout }) {
                   </div>
                 )}
 
-                <div className="divide-y divide-slate-100 max-h-[420px] overflow-y-auto pr-1">
-                  {attendanceSheet.map((student) => (
-                    <div 
-                      key={student.studentId}
-                      className="flex justify-between items-center py-3 hover:bg-slate-50/50 px-2 rounded-lg"
-                    >
-                      <div className="flex items-center space-x-4">
-                        <span className="font-mono text-xs font-bold text-[#006B2D] w-12">{student.rollNumber}</span>
-                        <span className="font-semibold text-slate-800 text-sm">{student.name}</span>
-                      </div>
-                      
-                      {/* Radios PRESENT / ABSENT */}
-                      <div className="flex items-center gap-4">
-                        <label className="flex items-center space-x-1.5 cursor-pointer select-none">
-                          <input
-                            type="radio"
-                            name={`attendance-${student.studentId}`}
-                            value="PRESENT"
-                            checked={student.status === 'PRESENT'}
-                            onChange={() => handleSetStatus(student.studentId, 'PRESENT')}
-                            className="w-4 h-4 accent-[#006B2D] cursor-pointer"
-                          />
-                          <span className={`text-xs font-bold transition-all ${
-                            student.status === 'PRESENT' ? 'text-emerald-700 font-black' : 'text-slate-500 hover:text-slate-700'
-                          }`}>
-                            Present
-                          </span>
-                        </label>
-
-                        <label className="flex items-center space-x-1.5 cursor-pointer select-none">
-                          <input
-                            type="radio"
-                            name={`attendance-${student.studentId}`}
-                            value="ABSENT"
-                            checked={student.status === 'ABSENT'}
-                            onChange={() => handleSetStatus(student.studentId, 'ABSENT')}
-                            className="w-4 h-4 accent-rose-600 cursor-pointer"
-                          />
-                          <span className={`text-xs font-bold transition-all ${
-                            student.status === 'ABSENT' ? 'text-rose-700 font-black' : 'text-slate-500 hover:text-slate-700'
-                          }`}>
-                            Absent
-                          </span>
-                        </label>
-                      </div>
+                {attendanceSheet.length > 0 && (
+                  <div className="flex justify-between items-center bg-slate-50 border border-slate-200 p-3 rounded-lg text-xs font-bold text-slate-700">
+                    <div>Live Stats:</div>
+                    <div className="flex space-x-4">
+                      <span className="text-emerald-700">Present: {presentCount}</span>
+                      <span className="text-rose-700">Absent: {absentCount}</span>
+                      <span className="text-slate-700">Total: {totalCount}</span>
                     </div>
-                  ))}
+                  </div>
+                )}
+
+                {/* Mobile View: Cards */}
+                <div className="block md:hidden space-y-4 max-h-[450px] overflow-y-auto pr-1">
+                  {attendanceSheet.map((student) => {
+                    const isPresent = student.status === 'PRESENT';
+                    const isAbsent = student.status === 'ABSENT';
+                    return (
+                      <div 
+                        key={student.studentId}
+                        onClick={() => toggleStatus(student.studentId)}
+                        className={`p-4 rounded-xl border transition-all cursor-pointer ${
+                          isPresent ? 'bg-emerald-50/50 border-emerald-300' :
+                          isAbsent ? 'bg-rose-50/50 border-rose-300' :
+                          'bg-white border-slate-200'
+                        }`}
+                      >
+                        <div className="flex justify-between items-center mb-3">
+                          <div>
+                            <h5 className="font-extrabold text-slate-800 text-sm">{student.name}</h5>
+                            <p className="text-xs text-slate-500 font-bold font-mono">Roll: {student.rollNumber}</p>
+                          </div>
+                          <span className={`text-xs font-black px-2 py-0.5 rounded-full uppercase border ${
+                            isPresent ? 'bg-emerald-100 text-emerald-800 border-emerald-200' :
+                            isAbsent ? 'bg-rose-100 text-rose-800 border-rose-200' :
+                            'bg-slate-100 text-slate-600 border-slate-200'
+                          }`}>
+                            {student.status || 'PENDING'}
+                          </span>
+                        </div>
+                        
+                        {/* Large Touch-friendly Buttons */}
+                        <div className="grid grid-cols-2 gap-3" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => handleSetStatus(student.studentId, 'PRESENT')}
+                            className={`py-2 px-3 rounded-lg text-xs font-bold transition shadow-xs cursor-pointer border ${
+                              isPresent 
+                                ? 'bg-emerald-600 border-emerald-700 text-white' 
+                                : 'bg-white border-slate-350 text-slate-700 hover:bg-slate-50'
+                            }`}
+                          >
+                            Present
+                          </button>
+                          <button
+                            onClick={() => handleSetStatus(student.studentId, 'ABSENT')}
+                            className={`py-2 px-3 rounded-lg text-xs font-bold transition shadow-xs cursor-pointer border ${
+                              isAbsent 
+                                ? 'bg-rose-600 border-rose-700 text-white' 
+                                : 'bg-white border-slate-350 text-slate-700 hover:bg-slate-50'
+                            }`}
+                          >
+                            Absent
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                   {attendanceSheet.length === 0 && (
                     <p className="text-center py-8 text-slate-500 text-xs">Configure parameters above to load student list.</p>
                   )}
+                </div>
+
+                {/* Tablet / Desktop View: Sticky Table */}
+                <div className="hidden md:block overflow-x-auto border border-slate-200 rounded-xl max-h-[420px]">
+                  <table className="w-full text-left text-sm border-collapse">
+                    <thead className="bg-[#E8F5E9] text-[#004D20] uppercase text-xs font-black border-b border-slate-200 sticky top-0 z-20">
+                      <tr>
+                        <th className="px-6 py-4 sticky left-0 bg-[#E8F5E9] z-10 w-48 border-r border-slate-200">Student Name</th>
+                        <th className="px-6 py-4">Roll No</th>
+                        <th className="px-6 py-4 text-center">Status Choice</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white">
+                      {attendanceSheet.map((student) => {
+                        const isPresent = student.status === 'PRESENT';
+                        const isAbsent = student.status === 'ABSENT';
+                        return (
+                          <tr 
+                            key={student.studentId}
+                            onClick={() => toggleStatus(student.studentId)}
+                            className={`hover:bg-slate-50/50 cursor-pointer transition ${
+                              isPresent ? 'bg-emerald-50/10' : isAbsent ? 'bg-rose-50/10' : ''
+                            }`}
+                          >
+                            <td className="px-6 py-4 font-bold text-slate-800 sticky left-0 bg-white z-10 border-r border-slate-100 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
+                              {student.name}
+                            </td>
+                            <td className="px-6 py-4 font-mono font-bold text-[#006B2D]">
+                              {student.rollNumber}
+                            </td>
+                            <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex justify-center gap-4">
+                                <label className="flex items-center space-x-1.5 cursor-pointer select-none">
+                                  <input
+                                    type="radio"
+                                    name={`attendance-${student.studentId}`}
+                                    value="PRESENT"
+                                    checked={isPresent}
+                                    onChange={() => handleSetStatus(student.studentId, 'PRESENT')}
+                                    className="w-4 h-4 accent-[#006B2D] cursor-pointer"
+                                  />
+                                  <span className={`text-xs font-bold transition-all ${
+                                    isPresent ? 'text-emerald-700 font-black' : 'text-slate-500 hover:text-slate-700'
+                                  }`}>
+                                    Present
+                                  </span>
+                                </label>
+                                <label className="flex items-center space-x-1.5 cursor-pointer select-none">
+                                  <input
+                                    type="radio"
+                                    name={`attendance-${student.studentId}`}
+                                    value="ABSENT"
+                                    checked={isAbsent}
+                                    onChange={() => handleSetStatus(student.studentId, 'ABSENT')}
+                                    className="w-4 h-4 accent-rose-600 cursor-pointer"
+                                  />
+                                  <span className={`text-xs font-bold transition-all ${
+                                    isAbsent ? 'text-rose-700 font-black' : 'text-slate-500 hover:text-slate-700'
+                                  }`}>
+                                    Absent
+                                  </span>
+                                </label>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
 
                 {attendanceSheet.length > 0 && (
@@ -641,8 +760,8 @@ export default function TeacherPortal({ user, token, onLogout }) {
                     onChange={(e) => setMarksClass(e.target.value)}
                     className="block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm focus:outline-none focus:ring-[#006B2D]"
                   >
-                    {classList.map(c => (
-                      <option key={c.id} value={c.id}>{c.grade}</option>
+                    {sortedClasses.map(cls => (
+                      <option key={cls.id} value={cls.id}>{cls.grade}</option>
                     ))}
                   </select>
                 </div>
@@ -777,8 +896,8 @@ export default function TeacherPortal({ user, token, onLogout }) {
                     onChange={(e) => setMonitoringClass(e.target.value)}
                     className="rounded-lg border border-slate-300 py-1.5 px-3 text-xs focus:outline-none focus:ring-[#006B2D] bg-white font-bold text-slate-700"
                   >
-                    {classList.map(c => (
-                      <option key={c.id} value={c.id}>{c.grade}</option>
+                    {sortedClasses.map(cls => (
+                      <option key={cls.id} value={cls.id}>{cls.grade}</option>
                     ))}
                   </select>
 
@@ -797,8 +916,8 @@ export default function TeacherPortal({ user, token, onLogout }) {
                   <table className="w-full text-left text-xs sm:text-sm">
                     <thead className="bg-[#E8F5E9] text-[#004D20] uppercase text-xs font-black border-b border-slate-200">
                       <tr>
+                        <th className="px-6 py-4 sticky left-0 bg-[#E8F5E9] z-10 w-48 border-r border-slate-100 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">Name</th>
                         <th className="px-6 py-4">Roll No</th>
-                        <th className="px-6 py-4">Name</th>
                         <th className="px-6 py-4">Attendance Rate</th>
                         <th className="px-6 py-4">Status / Risk Indicator</th>
                         <th className="px-6 py-4 text-right">Actions</th>
@@ -814,8 +933,8 @@ export default function TeacherPortal({ user, token, onLogout }) {
                           
                           return (
                             <tr key={student.id} className="hover:bg-slate-50/50">
+                              <td className="px-6 py-4 font-extrabold text-slate-900 sticky left-0 bg-white z-10 border-r border-slate-100 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">{student.name}</td>
                               <td className="px-6 py-4 font-mono text-[#006B2D] font-bold">{student.rollNumber}</td>
-                              <td className="px-6 py-4 font-extrabold text-slate-900">{student.name}</td>
                               <td className="px-6 py-4">
                                 <div className="flex items-center space-x-2">
                                   <div className="w-16 bg-slate-100 rounded-full h-1.5 overflow-hidden">
@@ -1026,6 +1145,78 @@ export default function TeacherPortal({ user, token, onLogout }) {
                 className="bg-[#006B2D] hover:bg-[#138A36] text-white text-xs font-bold py-2 px-4 rounded-lg shadow-md cursor-pointer border border-[#004D20]"
               >
                 Yes, Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MOBILE HAMBURGER DRAWER */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 flex md:hidden">
+          <div 
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setIsMobileMenuOpen(false)}
+          ></div>
+          <div className="relative flex flex-col w-64 max-w-xs bg-[#004D20] text-white p-6 shadow-2xl animate-slide-in">
+            <button 
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="absolute top-4 right-4 text-slate-350 hover:text-white cursor-pointer"
+            >
+              <X size={20} />
+            </button>
+            <div className="flex items-center space-x-3 mb-8">
+              <img className="h-10 w-auto" src={apLogo} alt="Emblem" />
+              <div>
+                <h1 className="font-extrabold text-sm tracking-wider">AP GOVERNMENT</h1>
+                <span className="text-xs text-[#D4AF37] font-semibold uppercase">{user.role}</span>
+              </div>
+            </div>
+            <nav className="flex-1 space-y-2">
+              <button 
+                onClick={() => { setActiveTab('ATTENDANCE'); setIsMobileMenuOpen(false); }}
+                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'ATTENDANCE' ? 'bg-[#006B2D] text-white shadow-md border border-[#D4AF37]/20' : 'text-slate-300 hover:bg-[#138A36]/30'
+                }`}
+              >
+                <CheckSquare size={16} />
+                <span>Smart Attendance</span>
+              </button>
+              <button 
+                onClick={() => { setActiveTab('MARKS_ENTRY'); setIsMobileMenuOpen(false); }}
+                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'MARKS_ENTRY' ? 'bg-[#006B2D] text-white shadow-md border border-[#D4AF37]/20' : 'text-slate-300 hover:bg-[#138A36]/30'
+                }`}
+              >
+                <Award size={16} />
+                <span>Marks Entry</span>
+              </button>
+              <button 
+                onClick={() => { setActiveTab('MONITORING'); setIsMobileMenuOpen(false); }}
+                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'MONITORING' ? 'bg-[#006B2D] text-white shadow-md border border-[#D4AF37]/20' : 'text-slate-300 hover:bg-[#138A36]/30'
+                }`}
+              >
+                <Search size={16} />
+                <span>Student Monitoring</span>
+              </button>
+              <button 
+                onClick={() => { setActiveTab('REPORTS'); setIsMobileMenuOpen(false); }}
+                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'REPORTS' ? 'bg-[#006B2D] text-white shadow-md border border-[#D4AF37]/20' : 'text-slate-300 hover:bg-[#138A36]/30'
+                }`}
+              >
+                <Download size={16} />
+                <span>Download Reports</span>
+              </button>
+            </nav>
+            <div className="pt-6 border-t border-emerald-800">
+              <button 
+                onClick={onLogout}
+                className="w-full flex items-center space-x-3 px-4 py-2 rounded-lg text-sm font-semibold text-rose-300 hover:bg-rose-950/30 cursor-pointer"
+              >
+                <LogOut size={18} />
+                <span>Sign Out</span>
               </button>
             </div>
           </div>

@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Users, PlusCircle, Edit, Trash2, Calendar, FileText, Award, LogOut, Check, X, ClipboardList, Key, CheckSquare, Upload, Download
+  Users, PlusCircle, Edit, Trash2, Calendar, FileText, Award, LogOut, Check, X, ClipboardList, Key, CheckSquare, Upload, Download, Menu
 } from 'lucide-react';
 import apLogo from '../assets/ap-logo.png';
 import { API_URL, parseResponse } from '../config/api';
 
 export default function OperatorPortal({ user, token, onLogout }) {
   const [activeTab, setActiveTab] = useState('STUDENTS'); 
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [students, setStudents] = useState([]);
   const [classList, setClassList] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -78,7 +79,8 @@ export default function OperatorPortal({ user, token, onLogout }) {
     try {
       const resClasses = await fetch(`${API_URL}/api/academic/classes`, { headers });
       const classes = await parseResponse(resClasses);
-      setClassList(classes);
+      const sorted = [...classes].sort((a, b) => a.id - b.id);
+      setClassList(sorted);
 
       const resSubs = await fetch(`${API_URL}/api/academic/subjects`, { headers });
       const subs = await parseResponse(resSubs);
@@ -449,14 +451,16 @@ export default function OperatorPortal({ user, token, onLogout }) {
     }
   };
 
+  const sortedClasses = [...classList].sort((a, b) => a.id - b.id);
+
   return (
     <div className="flex h-screen bg-slate-50 font-sans overflow-hidden">
       
       {/* SIDEBAR */}
-      <aside className="hidden md:flex flex-col w-64 bg-brand-dark text-white p-6 shadow-xl z-20">
-        <div className="flex items-center space-x-3 mb-8">
-          <img className="h-10 w-auto" src={apLogo} alt="Emblem" />
-          <div>
+      <aside className="hidden md:flex flex-col lg:w-64 md:w-20 bg-brand-dark text-white p-4 lg:p-6 shadow-xl z-20 shrink-0 transition-all duration-300 border-r border-[#D4AF37]/20">
+        <div className="flex items-center space-x-3 mb-8 justify-center lg:justify-start">
+          <img className="h-10 w-auto shrink-0" src={apLogo} alt="Emblem" />
+          <div className="hidden lg:block">
             <h1 className="font-extrabold text-sm tracking-wider">AP EDU OPERATOR</h1>
             <span className="text-[10px] text-brand-gold font-semibold uppercase">{user.role}</span>
           </div>
@@ -465,82 +469,90 @@ export default function OperatorPortal({ user, token, onLogout }) {
         <nav className="flex-1 space-y-2">
           <button 
             onClick={() => setActiveTab('STUDENTS')}
-            className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+            className={`w-full flex items-center lg:space-x-3 px-3 py-2.5 lg:px-4 rounded-lg text-xs font-bold transition-all cursor-pointer justify-center lg:justify-start ${
               activeTab === 'STUDENTS' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
             }`}
+            title="Admissions & Registry"
           >
-            <Users size={18} />
-            <span>Admissions & Registry</span>
+            <Users size={18} className="shrink-0" />
+            <span className="hidden lg:inline">Admissions & Registry</span>
           </button>
 
           <button 
             onClick={() => setActiveTab('PARENT_UPDATES')}
-            className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+            className={`w-full flex items-center lg:space-x-3 px-3 py-2.5 lg:px-4 rounded-lg text-xs font-bold transition-all cursor-pointer justify-center lg:justify-start ${
               activeTab === 'PARENT_UPDATES' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
             }`}
+            title="Parent Info Updates"
           >
-            <Edit size={18} />
-            <span>Parent Info Updates</span>
+            <Edit size={18} className="shrink-0" />
+            <span className="hidden lg:inline">Parent Info Updates</span>
           </button>
 
           <button 
             onClick={() => setActiveTab('CORRECTIONS')}
-            className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+            className={`w-full flex items-center lg:space-x-3 px-3 py-2.5 lg:px-4 rounded-lg text-xs font-bold transition-all cursor-pointer justify-center lg:justify-start ${
               activeTab === 'CORRECTIONS' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
             }`}
+            title="Attendance Corrections"
           >
-            <CheckSquare size={18} />
-            <span>Attendance Corrections</span>
+            <CheckSquare size={18} className="shrink-0" />
+            <span className="hidden lg:inline">Attendance Corrections</span>
           </button>
 
           <button 
             onClick={() => setActiveTab('BULK_CSV')}
-            className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+            className={`w-full flex items-center lg:space-x-3 px-3 py-2.5 lg:px-4 rounded-lg text-xs font-bold transition-all cursor-pointer justify-center lg:justify-start ${
               activeTab === 'BULK_CSV' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
             }`}
+            title="Bulk Import / Export"
           >
-            <Upload size={18} />
-            <span>Bulk Import / Export</span>
+            <Upload size={18} className="shrink-0" />
+            <span className="hidden lg:inline">Bulk Import / Export</span>
           </button>
 
           <button 
             onClick={() => setActiveTab('MARKS')}
-            className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+            className={`w-full flex items-center lg:space-x-3 px-3 py-2.5 lg:px-4 rounded-lg text-xs font-bold transition-all cursor-pointer justify-center lg:justify-start ${
               activeTab === 'MARKS' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
             }`}
+            title="Upload Marks"
           >
-            <Award size={18} />
-            <span>Upload Marks</span>
+            <Award size={18} className="shrink-0" />
+            <span className="hidden lg:inline">Upload Marks</span>
           </button>
 
           <button 
             onClick={() => setActiveTab('TIMETABLE')}
-            className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+            className={`w-full flex items-center lg:space-x-3 px-3 py-2.5 lg:px-4 rounded-lg text-xs font-bold transition-all cursor-pointer justify-center lg:justify-start ${
               activeTab === 'TIMETABLE' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
             }`}
+            title="Timetable Manager"
           >
-            <Calendar size={18} />
-            <span>Timetable Manager</span>
+            <Calendar size={18} className="shrink-0" />
+            <span className="hidden lg:inline">Timetable Manager</span>
           </button>
 
           <button 
             onClick={() => setActiveTab('CERTIFICATES')}
-            className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+            className={`w-full flex items-center lg:space-x-3 px-3 py-2.5 lg:px-4 rounded-lg text-xs font-bold transition-all cursor-pointer justify-center lg:justify-start ${
               activeTab === 'CERTIFICATES' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
             }`}
+            title="Issue Certificates"
           >
-            <FileText size={18} />
-            <span>Issue Certificates</span>
+            <FileText size={18} className="shrink-0" />
+            <span className="hidden lg:inline">Issue Certificates</span>
           </button>
         </nav>
 
         <div className="pt-6 border-t border-slate-700">
           <button 
             onClick={onLogout}
-            className="w-full flex items-center space-x-3 px-4 py-2 rounded-lg text-sm font-semibold text-rose-300 hover:bg-rose-950/30 cursor-pointer"
+            className="w-full flex items-center lg:space-x-3 px-3 py-2 lg:px-4 rounded-lg text-sm font-semibold text-rose-300 hover:bg-rose-950/30 cursor-pointer justify-center lg:justify-start"
+            title="Sign Out"
           >
-            <LogOut size={18} />
-            <span>Sign Out</span>
+            <LogOut size={18} className="shrink-0" />
+            <span className="hidden lg:inline">Sign Out</span>
           </button>
         </div>
       </aside>
@@ -548,13 +560,21 @@ export default function OperatorPortal({ user, token, onLogout }) {
       {/* MAIN CONTAINER */}
       <main className="flex-1 flex flex-col overflow-y-auto">
         <header className="bg-white border-b border-slate-200 py-4 px-6 flex justify-between items-center shadow-xs">
-          <div>
-            <h2 className="text-xl font-bold text-brand-blue">
-              {activeTab.charAt(0) + activeTab.slice(1).toLowerCase().replace(/_/g, ' ')}
-            </h2>
-            <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">
-              {user.name} • Computer Operator Portal
-            </p>
+          <div className="flex items-center space-x-3">
+            <button 
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="md:hidden p-1.5 rounded-lg text-brand-blue hover:bg-slate-100 cursor-pointer"
+            >
+              <Menu size={20} />
+            </button>
+            <div>
+              <h2 className="text-xl font-bold text-brand-blue">
+                {activeTab.charAt(0) + activeTab.slice(1).toLowerCase().replace(/_/g, ' ')}
+              </h2>
+              <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">
+                {user.name} • Computer Operator Portal
+              </p>
+            </div>
           </div>
           <div className="flex items-center space-x-4">
             <span className="bg-brand-gold/15 text-brand-gold font-bold px-3 py-1 rounded-full text-xs border border-brand-gold/30">
@@ -597,9 +617,9 @@ export default function OperatorPortal({ user, token, onLogout }) {
                   <table className="w-full text-left text-sm">
                     <thead className="bg-slate-50 text-slate-600 uppercase text-xs font-bold border-b border-slate-200">
                       <tr>
-                        <th className="px-4 py-3">Admission No</th>
+                        <th className="px-4 py-3 sticky left-0 bg-slate-50 z-10 w-48 border-r border-slate-100 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">Name</th>
                         <th className="px-4 py-3">Roll No</th>
-                        <th className="px-4 py-3">Name</th>
+                        <th className="px-4 py-3">Admission No</th>
                         <th className="px-4 py-3">DOB</th>
                         <th className="px-4 py-3">Gender</th>
                         <th className="px-4 py-3">Parent Details</th>
@@ -609,9 +629,9 @@ export default function OperatorPortal({ user, token, onLogout }) {
                     <tbody className="divide-y divide-slate-100">
                       {students.map((student) => (
                         <tr key={student.id} className="hover:bg-slate-50">
-                          <td className="px-4 py-3 font-mono font-bold text-slate-700">{student.admissionNumber}</td>
+                          <td className="px-4 py-3 font-semibold text-slate-800 sticky left-0 bg-white z-10 border-r border-slate-100 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">{student.name}</td>
                           <td className="px-4 py-3 font-mono font-bold text-brand-blue">{student.rollNumber}</td>
-                          <td className="px-4 py-3 font-semibold text-slate-800">{student.name}</td>
+                          <td className="px-4 py-3 font-mono font-bold text-slate-700">{student.admissionNumber}</td>
                           <td className="px-4 py-3 text-slate-600 text-xs font-mono">{student.dob}</td>
                           <td className="px-4 py-3 text-slate-600 text-xs">{student.gender}</td>
                           <td className="px-4 py-3 text-slate-700 font-semibold">{student.parentName} ({student.parentMobile})</td>
@@ -937,7 +957,7 @@ export default function OperatorPortal({ user, token, onLogout }) {
                   </select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Marks Obtained</label>
                     <input 
@@ -994,7 +1014,7 @@ export default function OperatorPortal({ user, token, onLogout }) {
                     required
                     className="block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm focus:outline-none focus:ring-brand-blue focus:border-brand-blue"
                   >
-                    {classList.map(c => (
+                    {sortedClasses.map(c => (
                       <option key={c.id} value={c.id}>Class {c.grade}{c.section || ''}</option>
                     ))}
                   </select>
@@ -1159,7 +1179,7 @@ export default function OperatorPortal({ user, token, onLogout }) {
             </header>
 
             <form onSubmit={handleStudentSubmit} className="p-6 space-y-4 text-left">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Admission Number</label>
                   <input 
@@ -1184,7 +1204,7 @@ export default function OperatorPortal({ user, token, onLogout }) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Student Full Name</label>
                   <input 
@@ -1203,14 +1223,14 @@ export default function OperatorPortal({ user, token, onLogout }) {
                     onChange={(e) => setStudentForm({ ...studentForm, classId: e.target.value })}
                     className="w-full rounded-lg border border-slate-300 py-1.5 px-3 text-xs focus:outline-none focus:ring-brand-blue"
                   >
-                    {classList.map(c => (
+                    {sortedClasses.map(c => (
                       <option key={c.id} value={c.id}>{c.grade}</option>
                     ))}
                   </select>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Date of Birth (dob)</label>
                   <input 
@@ -1236,7 +1256,7 @@ export default function OperatorPortal({ user, token, onLogout }) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Parent / Guardian Name</label>
                   <input 
@@ -1289,6 +1309,105 @@ export default function OperatorPortal({ user, token, onLogout }) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MOBILE HAMBURGER DRAWER */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 flex md:hidden">
+          <div 
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setIsMobileMenuOpen(false)}
+          ></div>
+          <div className="relative flex flex-col w-64 max-w-xs bg-brand-dark text-white p-6 shadow-2xl animate-slide-in">
+            <button 
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="absolute top-4 right-4 text-slate-350 hover:text-white cursor-pointer"
+            >
+              <X size={20} />
+            </button>
+            <div className="flex items-center space-x-3 mb-8">
+              <img className="h-10 w-auto" src={apLogo} alt="Emblem" />
+              <div>
+                <h1 className="font-extrabold text-sm tracking-wider">AP EDU OPERATOR</h1>
+                <span className="text-xs text-[#D4AF37] font-semibold uppercase">{user.role}</span>
+              </div>
+            </div>
+            <nav className="flex-1 space-y-2">
+              <button 
+                onClick={() => { setActiveTab('STUDENTS'); setIsMobileMenuOpen(false); }}
+                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                  activeTab === 'STUDENTS' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                <Users size={18} />
+                <span>Admissions & Registry</span>
+              </button>
+              <button 
+                onClick={() => { setActiveTab('PARENT_UPDATES'); setIsMobileMenuOpen(false); }}
+                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                  activeTab === 'PARENT_UPDATES' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                <Edit size={18} />
+                <span>Parent Info Updates</span>
+              </button>
+              <button 
+                onClick={() => { setActiveTab('CORRECTIONS'); setIsMobileMenuOpen(false); }}
+                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                  activeTab === 'CORRECTIONS' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                <CheckSquare size={18} />
+                <span>Attendance Corrections</span>
+              </button>
+              <button 
+                onClick={() => { setActiveTab('BULK_CSV'); setIsMobileMenuOpen(false); }}
+                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                  activeTab === 'BULK_CSV' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                <Upload size={18} />
+                <span>Bulk Import / Export</span>
+              </button>
+              <button 
+                onClick={() => { setActiveTab('MARKS'); setIsMobileMenuOpen(false); }}
+                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                  activeTab === 'MARKS' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                <Award size={18} />
+                <span>Upload Marks</span>
+              </button>
+              <button 
+                onClick={() => { setActiveTab('TIMETABLE'); setIsMobileMenuOpen(false); }}
+                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                  activeTab === 'TIMETABLE' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                <Calendar size={18} />
+                <span>Timetable Manager</span>
+              </button>
+              <button 
+                onClick={() => { setActiveTab('CERTIFICATES'); setIsMobileMenuOpen(false); }}
+                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                  activeTab === 'CERTIFICATES' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                <FileText size={18} />
+                <span>Issue Certificates</span>
+              </button>
+            </nav>
+            <div className="pt-6 border-t border-slate-700">
+              <button 
+                onClick={onLogout}
+                className="w-full flex items-center space-x-3 px-4 py-2 rounded-lg text-sm font-semibold text-rose-300 hover:bg-rose-950/30 cursor-pointer"
+              >
+                <LogOut size={18} />
+                <span>Sign Out</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

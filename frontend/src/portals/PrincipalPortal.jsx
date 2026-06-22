@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Users, UserCog, Calendar, FileText, 
   Brain, BellRing, LogOut, CheckCircle, XCircle, 
-  Download, PlusCircle, Check, X, ShieldAlert, Award, Coffee
+  Download, PlusCircle, Check, X, ShieldAlert, Award, Coffee, Menu
 } from 'lucide-react';
 import apLogo from '../assets/ap-logo.png';
 import { API_URL, parseResponse } from '../config/api';
 
 export default function PrincipalPortal({ user, token, onLogout }) {
   const [activeTab, setActiveTab] = useState('DASHBOARD');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [students, setStudents] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [classList, setClassList] = useState([]);
@@ -63,9 +64,10 @@ export default function PrincipalPortal({ user, token, onLogout }) {
       // 3. Fetch Classes
       const resClasses = await fetch(`${API_URL}/api/academic/classes`, { headers });
       const classes = await parseResponse(resClasses);
-      setClassList(classes);
-      if (classes.length > 0) {
-        setReportClass(classes[0].id.toString());
+      const sortedClasses = [...classes].sort((a, b) => a.id - b.id);
+      setClassList(sortedClasses);
+      if (sortedClasses.length > 0) {
+        setReportClass(sortedClasses[0].id.toString());
       }
 
       // 4. Fetch Notices
@@ -166,18 +168,20 @@ export default function PrincipalPortal({ user, token, onLogout }) {
     ? (students.reduce((acc, s) => acc + (s.attendancePercentage || 0), 0) / students.length).toFixed(1) 
     : '91.4';
 
+  const sortedClasses = [...classList].sort((a, b) => a.id - b.id);
+
   return (
     <div className="flex h-screen bg-slate-50 font-sans overflow-hidden">
       
       {/* SIDEBAR NAVIGATION */}
-      <aside className="hidden md:flex flex-col w-64 bg-brand-dark text-white p-6 shadow-xl z-20">
-        <div className="flex items-center space-x-3 mb-8">
+      <aside className="hidden md:flex flex-col lg:w-64 md:w-20 bg-brand-dark text-white p-4 lg:p-6 shadow-xl z-20 shrink-0 transition-all duration-300">
+        <div className="flex items-center space-x-3 mb-8 justify-center lg:justify-start">
           <img
-            className="h-10 w-auto"
+            className="h-10 w-auto shrink-0"
             src={apLogo}
             alt="Emblem"
           />
-          <div>
+          <div className="hidden lg:block">
             <h1 className="font-extrabold text-xs tracking-wider">AP EDU PRINCIPAL</h1>
             <span className="text-[10px] text-brand-gold font-semibold uppercase">{user.role}</span>
           </div>
@@ -186,74 +190,79 @@ export default function PrincipalPortal({ user, token, onLogout }) {
         <nav className="flex-1 space-y-2">
           <button 
             onClick={() => setActiveTab('DASHBOARD')}
-            className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+            className={`w-full flex items-center lg:space-x-3 px-3 py-2.5 lg:px-4 rounded-lg text-sm font-semibold transition-all cursor-pointer justify-center lg:justify-start ${
               activeTab === 'DASHBOARD' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
             }`}
+            title="Dashboard"
           >
-            <LayoutDashboard size={18} />
-            <span>Dashboard</span>
+            <LayoutDashboard size={18} className="shrink-0" />
+            <span className="hidden lg:inline">Dashboard</span>
           </button>
           
           <button 
             onClick={() => setActiveTab('STUDENTS')}
-            className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+            className={`w-full flex items-center lg:space-x-3 px-3 py-2.5 lg:px-4 rounded-lg text-sm font-semibold transition-all cursor-pointer justify-center lg:justify-start ${
               activeTab === 'STUDENTS' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
             }`}
+            title="Students SIS"
           >
-            <Users size={18} />
-            <span>Students SIS</span>
+            <Users size={18} className="shrink-0" />
+            <span className="hidden lg:inline">Students SIS</span>
           </button>
           
           <button 
             onClick={() => setActiveTab('TEACHERS')}
-            className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+            className={`w-full flex items-center lg:space-x-3 px-3 py-2.5 lg:px-4 rounded-lg text-sm font-semibold transition-all cursor-pointer justify-center lg:justify-start ${
               activeTab === 'TEACHERS' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
             }`}
+            title="Teacher Performance"
           >
-            <UserCog size={18} />
-            <span>Teacher Performance</span>
+            <UserCog size={18} className="shrink-0" />
+            <span className="hidden lg:inline">Teacher Performance</span>
           </button>
-
-
 
           <button 
             onClick={() => setActiveTab('NOTICES')}
-            className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+            className={`w-full flex items-center lg:space-x-3 px-3 py-2.5 lg:px-4 rounded-lg text-sm font-semibold transition-all cursor-pointer justify-center lg:justify-start ${
               activeTab === 'NOTICES' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
             }`}
+            title="Notice Board"
           >
-            <BellRing size={18} />
-            <span>Notice Board</span>
+            <BellRing size={18} className="shrink-0" />
+            <span className="hidden lg:inline">Notice Board</span>
           </button>
 
           <button 
             onClick={() => setActiveTab('REPORTS')}
-            className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+            className={`w-full flex items-center lg:space-x-3 px-3 py-2.5 lg:px-4 rounded-lg text-sm font-semibold transition-all cursor-pointer justify-center lg:justify-start ${
               activeTab === 'REPORTS' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
             }`}
+            title="Reports & Exports"
           >
-            <FileText size={18} />
-            <span>Reports & Exports</span>
+            <FileText size={18} className="shrink-0" />
+            <span className="hidden lg:inline">Reports & Exports</span>
           </button>
 
           <button 
             onClick={() => setActiveTab('AI_INSIGHTS')}
-            className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+            className={`w-full flex items-center lg:space-x-3 px-3 py-2.5 lg:px-4 rounded-lg text-sm font-semibold transition-all cursor-pointer justify-center lg:justify-start ${
               activeTab === 'AI_INSIGHTS' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
             }`}
+            title="AI Risk Predictions"
           >
-            <Brain size={18} />
-            <span>AI Risk Predictions</span>
+            <Brain size={18} className="shrink-0" />
+            <span className="hidden lg:inline">AI Risk Predictions</span>
           </button>
         </nav>
 
         <div className="pt-6 border-t border-slate-700">
           <button 
             onClick={onLogout}
-            className="w-full flex items-center space-x-3 px-4 py-2 rounded-lg text-sm font-semibold text-rose-300 hover:bg-rose-950/30 cursor-pointer"
+            className="w-full flex items-center lg:space-x-3 px-3 py-2 lg:px-4 rounded-lg text-sm font-semibold text-rose-300 hover:bg-rose-950/30 cursor-pointer justify-center lg:justify-start"
+            title="Sign Out"
           >
-            <LogOut size={18} />
-            <span>Sign Out</span>
+            <LogOut size={18} className="shrink-0" />
+            <span className="hidden lg:inline">Sign Out</span>
           </button>
         </div>
       </aside>
@@ -263,13 +272,21 @@ export default function PrincipalPortal({ user, token, onLogout }) {
         
         {/* HEADER BAR */}
         <header className="bg-white border-b border-slate-200 py-4 px-6 flex justify-between items-center shadow-xs">
-          <div>
-            <h2 className="text-xl font-bold text-brand-blue">
-              {activeTab.charAt(0) + activeTab.slice(1).toLowerCase().replace(/_/g, ' ')}
-            </h2>
-            <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">
-              {user.name} • Principal Portal
-            </p>
+          <div className="flex items-center space-x-3">
+            <button 
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="md:hidden p-1.5 rounded-lg text-brand-blue hover:bg-slate-100 cursor-pointer"
+            >
+              <Menu size={20} />
+            </button>
+            <div>
+              <h2 className="text-xl font-bold text-brand-blue">
+                {activeTab.charAt(0) + activeTab.slice(1).toLowerCase().replace(/_/g, ' ')}
+              </h2>
+              <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">
+                {user.name} • Principal Portal
+              </p>
+            </div>
           </div>
           
           <div className="flex items-center space-x-4">
@@ -295,7 +312,7 @@ export default function PrincipalPortal({ user, token, onLogout }) {
             <div className="space-y-6">
               
               {/* KPI Cards Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex justify-between items-center">
                   <div>
                     <span className="text-xs font-semibold text-slate-500 uppercase">Total Students</span>
@@ -450,10 +467,10 @@ export default function PrincipalPortal({ user, token, onLogout }) {
                 <h4 className="font-bold text-slate-700 mb-4">Student Registry</h4>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm">
-                    <thead className="bg-slate-50 text-slate-600 uppercase text-xs font-bold">
+                    <thead className="bg-slate-50 text-slate-600 uppercase text-xs font-bold border-b border-slate-200">
                       <tr>
+                        <th className="px-4 py-3 sticky left-0 bg-slate-50 z-10 w-48 border-r border-slate-100 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">Name</th>
                         <th className="px-4 py-3">Roll No</th>
-                        <th className="px-4 py-3">Name</th>
                         <th className="px-4 py-3">Aadhaar (Masked)</th>
                         <th className="px-4 py-3">GPA</th>
                         <th className="px-4 py-3">Risk Status</th>
@@ -462,8 +479,8 @@ export default function PrincipalPortal({ user, token, onLogout }) {
                     <tbody className="divide-y divide-slate-100">
                       {students.map((student) => (
                         <tr key={student.id} className="hover:bg-slate-50">
+                          <td className="px-4 py-3 font-semibold text-slate-800 sticky left-0 bg-white z-10 border-r border-slate-100 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">{student.name}</td>
                           <td className="px-4 py-3 font-mono font-bold text-brand-blue">{student.rollNumber}</td>
-                          <td className="px-4 py-3 font-semibold text-slate-800">{student.name}</td>
                           <td className="px-4 py-3 font-mono text-xs text-slate-500">{student.aadhaarMasked}</td>
                           <td className="px-4 py-3 font-bold text-brand-teal">{student.gpa || '7.5'}</td>
                           <td className="px-4 py-3">
@@ -831,6 +848,95 @@ export default function PrincipalPortal({ user, token, onLogout }) {
 
         </div>
       </main>
+      {/* MOBILE HAMBURGER DRAWER */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 flex md:hidden">
+          <div 
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setIsMobileMenuOpen(false)}
+          ></div>
+          <div className="relative flex flex-col w-64 max-w-xs bg-brand-dark text-white p-6 shadow-2xl animate-slide-in">
+            <button 
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="absolute top-4 right-4 text-slate-350 hover:text-white cursor-pointer"
+            >
+              <X size={20} />
+            </button>
+            <div className="flex items-center space-x-3 mb-8">
+              <img className="h-10 w-auto" src={apLogo} alt="Emblem" />
+              <div>
+                <h1 className="font-extrabold text-sm tracking-wider">AP PRINCIPAL</h1>
+                <span className="text-xs text-[#D4AF37] font-semibold uppercase">{user.role}</span>
+              </div>
+            </div>
+            <nav className="flex-1 space-y-2">
+              <button 
+                onClick={() => { setActiveTab('DASHBOARD'); setIsMobileMenuOpen(false); }}
+                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                  activeTab === 'DASHBOARD' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                <LayoutDashboard size={18} />
+                <span>Dashboard</span>
+              </button>
+              <button 
+                onClick={() => { setActiveTab('STUDENTS'); setIsMobileMenuOpen(false); }}
+                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                  activeTab === 'STUDENTS' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                <Users size={18} />
+                <span>Students SIS</span>
+              </button>
+              <button 
+                onClick={() => { setActiveTab('TEACHERS'); setIsMobileMenuOpen(false); }}
+                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                  activeTab === 'TEACHERS' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                <UserCog size={18} />
+                <span>Teacher Performance</span>
+              </button>
+              <button 
+                onClick={() => { setActiveTab('NOTICES'); setIsMobileMenuOpen(false); }}
+                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                  activeTab === 'NOTICES' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                <BellRing size={18} />
+                <span>Notice Board</span>
+              </button>
+              <button 
+                onClick={() => { setActiveTab('REPORTS'); setIsMobileMenuOpen(false); }}
+                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                  activeTab === 'REPORTS' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                <FileText size={18} />
+                <span>Reports & Exports</span>
+              </button>
+              <button 
+                onClick={() => { setActiveTab('AI_INSIGHTS'); setIsMobileMenuOpen(false); }}
+                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                  activeTab === 'AI_INSIGHTS' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                <Brain size={18} />
+                <span>AI Risk Predictions</span>
+              </button>
+            </nav>
+            <div className="pt-6 border-t border-slate-700">
+              <button 
+                onClick={onLogout}
+                className="w-full flex items-center space-x-3 px-4 py-2 rounded-lg text-sm font-semibold text-rose-300 hover:bg-rose-950/30 cursor-pointer"
+              >
+                <LogOut size={18} />
+                <span>Sign Out</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

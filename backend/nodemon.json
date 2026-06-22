@@ -1,0 +1,8 @@
+{
+  "ignore": [
+    "database/persistentData.json",
+    "backend/database/persistentData.json",
+    "**/persistentData.json",
+    "**/*.json"
+  ]
+}

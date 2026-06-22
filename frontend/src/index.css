@@ -1,0 +1,130 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-blue: #006B2D;
+  --color-brand-gold: #D4AF37;
+  --color-brand-teal: #138A36;
+  --color-brand-dark: #004D20;
+  --color-brand-light: #E8F5E9;
+}
+
+/* Premium Web App Styles */
+body {
+  font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: #F6FBF6;
+  color: #004D20;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  scroll-behavior: smooth;
+}
+
+/* Glassmorphism Panels with Green Tint */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(19, 138, 54, 0.2);
+}
+
+.glass-green {
+  background: rgba(232, 245, 233, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(19, 138, 54, 0.25);
+  box-shadow: 0 8px 32px 0 rgba(0, 77, 32, 0.15);
+}
+
+.glass-panel-dark {
+  background: rgba(0, 77, 32, 0.9);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Animated backgrounds */
+.bg-mesh {
+  background-color: #F6FBF6;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(0, 107, 45, 0.08) 0px, transparent 50%),
+    radial-gradient(at 50% 0%, rgba(0, 77, 32, 0.06) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(232, 245, 233, 0.25) 0px, transparent 50%);
+  background-size: 100% 100%;
+}
+
+/* Premium Scrollbars (Green theme) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #e8f5e9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #a5d6a7;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #81c784;
+}
+
+/* Custom Calendar Styling */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+/* Floating Animations */
+@keyframes float {
+  0% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(1deg); }
+  100% { transform: translateY(0px) rotate(0deg); }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float 4.5s ease-in-out infinite;
+  animation-delay: 1.5s;
+}
+
+/* Scrolling Marquee Animation */
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-100%); }
+}
+
+.animate-marquee {
+  display: inline-block;
+  white-space: nowrap;
+  animation: marquee 25s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* CM Section Glow and Accent styles */
+.gold-glow {
+  box-shadow: 0 0 15px rgba(212, 175, 55, 0.2);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+}
+
+/* Print Overrides */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .print-area {
+    width: 100% !important;
+    max-width: 100% !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+}

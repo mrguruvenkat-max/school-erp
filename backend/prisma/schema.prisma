@@ -1,0 +1,201 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  passwordHash String
+  role         String   // "TEACHER", "PRINCIPAL", "COMPUTER_OPERATOR"
+  name         String
+  phone        String?  // For Parent/Staff mobile matching
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relationships
+  teacherProfile Teacher?
+  parentProfile  Parent?
+  notifications  Notification[]
+
+  @@map("users")
+}
+
+model Class {
+  id        Int       @id @default(autoincrement())
+  grade     String    @unique // e.g. "Class 10" or "Class 9"
+
+  // Relationships
+  students    Student[]
+  timetables  Timetable[]
+
+  @@map("classes")
+}
+
+model Student {
+  id            Int           @id @default(autoincrement())
+  rollNumber    String        @unique
+  name          String
+  classId       Int
+  class         Class         @relation(fields: [classId], references: [id])
+  dob           String        // DOB for login, e.g. "06062007"
+  gender        String
+  parentName    String
+  parentMobile  String
+  address       String
+  admissionNumber String      @unique
+
+  presentPeriods        Float         @default(0)
+  absentPeriods         Float         @default(0)
+  totalConductedPeriods Float         @default(0)
+  attendancePercentage  Float         @default(0)
+
+  // Relationships
+  attendance   Attendance[]
+  marks        Mark[]
+  complaints   Complaint[]
+  certificates Certificate[]
+
+  parentId     Int?
+  parent       Parent?       @relation(fields: [parentId], references: [id], onDelete: SetNull)
+
+  @@map("students")
+}
+
+model Parent {
+  id           Int       @id @default(autoincrement())
+  name         String
+  mobile       String    @unique
+  passwordHash String
+  userId       Int?      @unique
+  user         User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relationships
+  students     Student[]
+
+  @@map("parents")
+}
+
+model Teacher {
+  id        Int      @id @default(autoincrement())
+  name      String
+  role      String   // "SUBJECT_TEACHER", "CLASS_TEACHER", "LAB_FACULTY"
+  userId    Int?     @unique
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Relationships
+  timetables        Timetable[]
+
+  @@map("teachers")
+}
+
+model Subject {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+
+  // Relationships
+  attendance Attendance[]
+  marks      Mark[]
+  timetables Timetable[]
+
+  @@map("subjects")
+}
+
+model Attendance {
+  id         Int      @id @default(autoincrement())
+  studentId  Int
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  classId    Int
+  subjectId  Int
+  subject    Subject  @relation(fields: [subjectId], references: [id])
+  period     Int      // Period number 1-7
+  date       DateTime @db.Date
+  status     String   // "PRESENT", "ABSENT"
+  createdAt  DateTime @default(now())
+
+  @@unique([studentId, date, period])
+  @@map("attendance")
+}
+
+model Mark {
+  id            Int      @id @default(autoincrement())
+  studentId     Int
+  student       Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subjectId     Int
+  subject       Subject  @relation(fields: [subjectId], references: [id])
+  examType      String   // "UNIT_TEST_1", "UNIT_TEST_2", "QUARTERLY", "HALF_YEARLY", "ANNUAL"
+  marksObtained Float
+  maxMarks      Float
+  createdAt     DateTime @default(now())
+
+  @@map("marks")
+}
+
+model Timetable {
+  id        Int      @id @default(autoincrement())
+  classId   Int
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  dayOfWeek String   // "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"
+  period    Int      // 1-7
+  subjectId Int
+  subject   Subject  @relation(fields: [subjectId], references: [id])
+  teacherId Int
+  teacher   Teacher  @relation(fields: [teacherId], references: [id])
+
+  @@unique([classId, dayOfWeek, period])
+  @@map("timetable")
+}
+
+model Complaint {
+  id        Int      @id @default(autoincrement())
+  studentId Int
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  type      String   // "TEACHER_ISSUE", "INFRASTRUCTURE_ISSUE", "HARASSMENT", "SUGGESTION"
+  details   String
+  status    String   @default("PENDING") // "PENDING", "UNDER_REVIEW", "RESOLVED"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("complaints")
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int?     // Target user (null means all users / notice board)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  content   String
+  category  String   // "GENERAL", "NOTICE_BOARD", "ATTENDANCE", "EXAM"
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
+
+model Certificate {
+  id        Int      @id @default(autoincrement())
+  studentId Int
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  type      String   // "BONAFIDE", "STUDY", "ATTENDANCE", "TRANSFER_CERTIFICATE"
+  certNo    String   @unique
+  issuedAt  DateTime @default(now())
+
+  @@map("certificates")
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  action    String
+  userRole  String
+  username  String
+  details   String
+  timestamp DateTime @default(now())
+
+  @@map("audit_logs")
+}

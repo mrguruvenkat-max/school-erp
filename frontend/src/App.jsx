@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import io from 'socket.io-client';
 import { API_URL } from './config/api';
 import LoginPortal from './portals/LoginPortal';
@@ -7,12 +7,14 @@ import TeacherPortal from './portals/TeacherPortal';
 import StudentPortal from './portals/StudentPortal';
 import ParentPortal from './portals/ParentPortal';
 import OperatorPortal from './portals/OperatorPortal';
-import { BellRing, X } from 'lucide-react';
+import { X } from 'lucide-react';
+import LogoutConfirmModal from './components/LogoutConfirmModal';
 
 export default function App() {
   const [token, setToken] = useState(localStorage.getItem('token') || null);
   const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')) || null);
   const [toast, setToast] = useState(null); // { title, content }
+  const [showLogoutConfirmModal, setShowLogoutConfirmModal] = useState(false);
 
   // Socket.io for notice board broadcasts
   useEffect(() => {
@@ -81,24 +83,38 @@ export default function App() {
     setUser(loggedInUser);
   };
 
-  const handleLogout = () => {
+  const triggerLogoutConfirm = () => {
+    setShowLogoutConfirmModal(true);
+  };
+
+  const executeLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setToken(null);
     setUser(null);
+    setShowLogoutConfirmModal(false);
+
+    setToast({
+      title: "🚪 Signed Out",
+      content: "Logged out successfully."
+    });
+
+    setTimeout(() => {
+      setToast(null);
+    }, 3000);
   };
 
   // Toast Notification alert
   const renderToast = () => {
     if (!toast) return null;
     return (
-      <div className="fixed top-5 right-5 z-50 max-w-sm w-full bg-white rounded-2xl shadow-2xl border border-brand-gold/30 p-4 animate-bounce flex items-start space-x-3">
-        <div className="flex-1 space-y-1">
-          <p className="text-sm font-extrabold text-brand-blue">{toast.title}</p>
-          <div className="text-xs text-slate-600 leading-relaxed">{toast.content}</div>
+      <div className="fixed top-5 right-5 z-[1000] max-w-sm w-full bg-white dark:bg-slate-900 border-2 border-[#005a2b] p-4 flex items-start space-x-3 shadow">
+        <div className="flex-1 space-y-1 text-left">
+          <p className="text-xs font-bold text-[#005a2b] dark:text-emerald-450">{toast.title}</p>
+          <div className="text-xs text-slate-600 dark:text-slate-305 leading-relaxed">{toast.content}</div>
         </div>
-        <button onClick={() => setToast(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
-          <X size={16} />
+        <button onClick={() => setToast(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer shrink-0">
+          <X size={14} />
         </button>
       </div>
     );
@@ -112,20 +128,20 @@ export default function App() {
 
     switch (user.role) {
       case 'PRINCIPAL':
-        return <PrincipalPortal user={user} token={token} onLogout={handleLogout} />;
+        return <PrincipalPortal user={user} token={token} onLogout={triggerLogoutConfirm} />;
       case 'COMPUTER_OPERATOR':
-        return <OperatorPortal user={user} token={token} onLogout={handleLogout} />;
+        return <OperatorPortal user={user} token={token} onLogout={triggerLogoutConfirm} />;
       case 'TEACHER':
-        return <TeacherPortal user={user} token={token} onLogout={handleLogout} />;
+        return <TeacherPortal user={user} token={token} onLogout={triggerLogoutConfirm} />;
       case 'STUDENT':
-        return <StudentPortal user={user} token={token} onLogout={handleLogout} />;
+        return <StudentPortal user={user} token={token} onLogout={triggerLogoutConfirm} />;
       case 'PARENT':
-        return <ParentPortal user={user} token={token} onLogout={handleLogout} />;
+        return <ParentPortal user={user} token={token} onLogout={triggerLogoutConfirm} />;
       default:
         return (
           <div className="flex flex-col items-center justify-center h-screen bg-slate-50 space-y-4">
             <p className="text-red-500 font-bold">Error: Invalid Portal Role access configuration.</p>
-            <button onClick={handleLogout} className="bg-brand-blue text-white px-4 py-2 rounded">
+            <button onClick={executeLogout} className="bg-brand-blue text-white px-4 py-2 rounded">
               Logout
             </button>
           </div>
@@ -137,6 +153,12 @@ export default function App() {
     <div className="min-h-screen bg-slate-50 relative">
       {renderPortal()}
       {renderToast()}
+      {showLogoutConfirmModal && (
+        <LogoutConfirmModal 
+          onConfirm={executeLogout}
+          onCancel={() => setShowLogoutConfirmModal(false)}
+        />
+      )}
     </div>
   );
 }

@@ -146,13 +146,86 @@ async function main() {
   }
 
   // 7. Seed Bulk Students
-  console.log('Seeding bulk students...');
-  const commonNames = [
-    "Aarav Kumar", "Sai Teja", "Arjun Reddy", "Vihaan Kumar", "Karthik Sai",
-    "Rahul Varma", "Nikhil Kumar", "Charan Teja", "Pranav Reddy", "Akhil Sai",
-    "Harsha Kumar", "Rohit Teja", "Manoj Reddy", "Abhinav Kumar", "Vivek Sai",
-    "Tarun Kumar", "Naveen Teja", "Lokesh Reddy", "Mahesh Kumar", "Surya Sai"
-  ];
+  console.log('Clearing old student/parent/attendance/marks tables...');
+  await prisma.attendance.deleteMany({});
+  await prisma.mark.deleteMany({});
+  await prisma.complaint.deleteMany({});
+  await prisma.certificate.deleteMany({});
+  await prisma.student.deleteMany({});
+  await prisma.parent.deleteMany({});
+  await prisma.user.deleteMany({
+    where: {
+      role: {
+        in: ['STUDENT', 'PARENT']
+      }
+    }
+  });
+  await prisma.notification.deleteMany({});
+  await prisma.auditLog.deleteMany({});
+
+  console.log('Seeding new student dataset...');
+  const studentNamesByClass = {
+    1: [
+      "Aarush Reddy", "Sai Pavan", "Vihaan Krishna", "Yash Charan", "Mokshith Kumar",
+      "Rithvik Sai", "Abhiram Teja", "Koushik Reddy", "Harshavardhan", "Pranith Kumar",
+      "Likhith Sai", "Advaith Reddy", "Nithin Kumar", "Srinith Krishna", "Charvik Teja",
+      "Dhanvin Reddy", "Jashwanth Sai", "Reyansh Kumar", "Akshith Reddy", "Tarak Charan"
+    ],
+    2: [
+      "Ananya Sri", "Harshitha Devi", "Keerthana Reddy", "Saanvi Lakshmi", "Meghana Priya",
+      "Lasya Sri", "Ishitha Rani", "Navya Tejaswini", "Bhavya Sai", "Sowmya Lakshmi",
+      "Nanditha Reddy", "Deepika Kumari", "Pavani Sri", "Chandana Devi", "Akshaya Priya",
+      "Sanjana Reddy", "Likhitha Sai", "Madhuri Lakshmi", "Vaishnavi Teja", "Harika Sri"
+    ],
+    3: [
+      "Rohith Kumar", "Naveen Reddy", "Vikas Teja", "Mahesh Babu", "Santosh Kumar",
+      "Kiran Kumar", "Manoj Sai", "Sandeep Reddy", "Lokesh Kumar", "Goutham Krishna",
+      "Ajay Teja", "Surya Prakash", "Aravind Kumar", "Naresh Reddy", "Vinay Kumar",
+      "Rahul Chandra", "Teja Varma", "Vamsi Krishna", "Prudhvi Raj", "Hemant Kumar"
+    ],
+    4: [
+      "Dharani Sri", "Keerthi Lakshmi", "Monika Reddy", "Jyoshna Priya", "Sravya Devi",
+      "Sushmitha Rani", "Alekhya Sri", "Bindu Priya", "Kavya Lakshmi", "Shivani Reddy",
+      "Sneha Kumari", "Swathi Teja", "Anusha Devi", "Divya Rani", "Prathyusha",
+      "Sirisha Lakshmi", "Niharika Sri", "Bhargavi Devi", "Tejaswini Reddy", "Roshini Priya"
+    ],
+    5: [
+      "Pavan Kalyan", "Arjun Varma", "Vivek Anand", "Chaitanya Sai", "Abhinay Kumar",
+      "Phanindra Reddy", "Srikar Teja", "Rakesh Varma", "Dheeraj Kumar", "Bhargav Sai",
+      "Jagadeesh Reddy", "Rohit Krishna", "Madhav Kumar", "Sharan Teja", "Akhil Varma",
+      "Vineeth Sai", "Harinath Kumar", "Sai Nikhil", "Karthikeya", "Yoganand"
+    ],
+    6: [
+      "Nikhitha Reddy", "Pranavi Sri", "Manasa Lakshmi", "Gayathri Devi", "Amulya Rani",
+      "Hema Priya", "Pravalika", "Sandhya Lakshmi", "Indu Priya", "Siri Chandana",
+      "Reshma Sri", "Akhila Devi", "Shravani Reddy", "Ritika Sai", "Poojitha Lakshmi",
+      "Lavanya Sri", "Kusuma Priya", "Srinidhi Devi", "Anjali Rani", "Niveditha Sri"
+    ],
+    7: [
+      "Koushik Varma", "Pranay Kumar", "Jayanth Sai", "Sai Charan", "Bhanu Prakash",
+      "Kishore Kumar", "Manideep", "Tarun Teja", "Sai Harsha", "Naveen Chandra",
+      "Rohit Varma", "Aditya Krishna", "Uday Kumar", "Siddarth Sai", "Pavan Charan",
+      "Sampath Kumar", "Chiranjeevi", "Prashanth Reddy", "Kalyan Teja", "Vinod Kumar"
+    ],
+    8: [
+      "Sai Sushma", "Pooja Reddy", "Bhavana Lakshmi", "Anitha Kumari", "Mounika Devi",
+      "Neelima Rani", "Shruthi Priya", "Deepthi Lakshmi", "Anupama Sri", "Varshini Devi",
+      "Karuna Priya", "Yamini Reddy", "Sailaja Kumari", "Sahithi Sri", "Aparna Lakshmi",
+      "Rupasri Devi", "Nitya Rani", "Pallavi Sri", "Hasini Lakshmi", "Krithika Devi"
+    ],
+    9: [
+      "Venkatesh Kumar", "Siva Prasad", "Ram Charan", "Satish Kumar", "Anil Kumar",
+      "Mohan Krishna", "Narasimha Rao", "Raviteja", "Hari Krishna", "Sudheer Kumar",
+      "Prasad Reddy", "Vijay Kumar", "Gopi Krishna", "Ravi Chandra", "Murali Krishna",
+      "Suresh Babu", "Jagadish", "Nagarjuna", "Ramesh Naidu", "Bharath Kumar"
+    ],
+    10: [
+      "Akash Kumar", "Sai Kiran", "Nithish Reddy", "Rohan Krishna", "Charan Kumar",
+      "Vamshi Teja", "Kalyan Krishna", "Srinivas Reddy", "Gokul Sai", "Praveen Kumar",
+      "Dinesh Reddy", "Abhishek Sai", "Yashwanth Kumar", "Naveen Krishna", "Ashwin Reddy",
+      "Varun Teja", "Prajwal Kumar", "Mithun Sai", "Rithesh Kumar", "Sandeep Kumar"
+    ]
+  };
 
   let insertedCount = 0;
 
@@ -162,99 +235,184 @@ async function main() {
     if (!clsRecord) continue;
 
     const birthYear = 2021 - cNum;
+    const names = studentNamesByClass[cNum];
 
-    for (let pos = 1; pos <= 20; pos++) {
+    for (let pos = 1; pos <= names.length; pos++) {
       const roll = (cNum * 100 + pos).toString();
-      const name = commonNames[pos - 1];
+      const name = names[pos - 1];
       const dobDay = pos.toString().padStart(2, '0');
       const dobMonth = "06";
       const dob = `${dobDay}${dobMonth}${birthYear}`;
       const parentName = `Parent of ${name}`;
       const parentMobile = `9300000${roll}`;
       const admissionNumber = `ADM${roll}`;
+      const gender = (cNum === 2 || cNum === 4 || cNum === 6 || cNum === 8) ? "FEMALE" : "MALE";
 
-      const existingStudent = await prisma.student.findUnique({
-        where: { rollNumber: roll }
+      const parentRecord = await prisma.parent.create({
+        data: {
+          name: parentName,
+          mobile: parentMobile,
+          passwordHash: bcrypt.hashSync(parentMobile, 10)
+        }
       });
 
-      if (!existingStudent) {
-        let parentRecord = await prisma.parent.findUnique({
-          where: { mobile: parentMobile }
-        });
-
-        if (!parentRecord) {
-          parentRecord = await prisma.parent.create({
-            data: {
-              name: parentName,
-              mobile: parentMobile,
-              passwordHash: bcrypt.hashSync(parentMobile, 10)
-            }
-          });
+      await prisma.student.create({
+        data: {
+          rollNumber: roll,
+          name,
+          classId: clsRecord.id,
+          dob,
+          gender,
+          parentName,
+          parentMobile,
+          address: `AP Govt Housing Colony, Ward ${cNum}`,
+          admissionNumber,
+          parentId: parentRecord.id,
+          presentPeriods: 0,
+          absentPeriods: 0,
+          totalConductedPeriods: 0,
+          attendancePercentage: 0
         }
-
-        await prisma.student.create({
-          data: {
-            rollNumber: roll,
-            name,
-            classId: clsRecord.id,
-            dob,
-            gender: "MALE",
-            parentName,
-            parentMobile,
-            address: `AP Govt Housing Colony, Ward ${cNum}`,
-            admissionNumber,
-            parentId: parentRecord.id
-          }
-        });
-        insertedCount++;
-      }
+      });
+      insertedCount++;
     }
   }
 
   // 8. Seed Special Student (Roll: 2551)
   const specialRoll = "2551";
-  const existingSpecial = await prisma.student.findUnique({
-    where: { rollNumber: specialRoll }
-  });
-
-  if (!existingSpecial) {
-    const class10Record = classes.find(c => c.grade === 'Class 10');
-    if (class10Record) {
-      const specialParentMobile = "9999999999";
-      let specialParent = await prisma.parent.findUnique({
-        where: { mobile: specialParentMobile }
-      });
-
-      if (!specialParent) {
-        specialParent = await prisma.parent.create({
-          data: {
-            name: "Parent Guruvenkat",
-            mobile: specialParentMobile,
-            passwordHash: bcrypt.hashSync(specialParentMobile, 10)
-          }
-        });
+  const class10Record = classes.find(c => c.grade === 'Class 10');
+  if (class10Record) {
+    const specialParentMobile = "9999999999";
+    const specialParent = await prisma.parent.create({
+      data: {
+        name: "Parent Guruvenkat",
+        mobile: specialParentMobile,
+        passwordHash: bcrypt.hashSync(specialParentMobile, 10)
       }
+    });
 
-      await prisma.student.create({
-        data: {
-          rollNumber: specialRoll,
-          name: "Devarakonda Guruvenkat",
-          classId: class10Record.id,
-          dob: "06062007",
-          gender: "MALE",
-          parentName: "Parent Guruvenkat",
-          parentMobile: specialParentMobile,
-          address: "AP Govt School Campus, Guntur",
-          admissionNumber: "ADM2551",
-          parentId: specialParent.id
-        }
-      });
-      insertedCount++;
-      console.log('Seeded Special Student: Devarakonda Guruvenkat.');
-    }
+    await prisma.student.create({
+      data: {
+        rollNumber: specialRoll,
+        name: "Devarakonda Guruvenkat",
+        classId: class10Record.id,
+        dob: "06062007",
+        gender: "MALE",
+        parentName: "Parent Guruvenkat",
+        parentMobile: specialParentMobile,
+        address: "AP Govt School Campus, Guntur",
+        admissionNumber: "ADM2551",
+        parentId: specialParent.id,
+        presentPeriods: 0,
+        absentPeriods: 0,
+        totalConductedPeriods: 0,
+        attendancePercentage: 0
+      }
+    });
+    insertedCount++;
+    console.log('Seeded Special Student: Devarakonda Guruvenkat.');
   }
 
-  console.log(`Successfully inserted ${insertedCount} missing student records.`);
+  // 9. Seed School Notices
+  console.log("Seeding school notices/announcements...");
+  await prisma.notification.deleteMany({
+    where: { category: "NOTICE_BOARD" }
+  });
+  await prisma.notification.createMany({
+    data: [
+      {
+        userId: null,
+        title: "Independence Day Celebration – 15 August 2026",
+        content: "Official state flag hoisting ceremony and student cultural events schedule on the main sports ground. Flag hoisting begins at 08:30 AM.",
+        category: "NOTICE_BOARD",
+        isPinned: false,
+        expiryDate: "2026-08-16",
+        pdfUrl: "/circulars/independence-day-2026.pdf",
+        noticeType: "EVENTS",
+        createdAt: new Date("2026-07-20T10:00:00Z")
+      },
+      {
+        userId: null,
+        title: "Quarterly Examination Schedule Released",
+        content: "The academic schedule for Quarterly Examinations has been finalized for all grades. Detailed tables are available at classrooms.",
+        category: "NOTICE_BOARD",
+        isPinned: false,
+        expiryDate: "2026-09-15",
+        pdfUrl: "/circulars/quarterly-exams-schedule.pdf",
+        noticeType: "EXAMINATION",
+        createdAt: new Date("2026-07-18T10:00:00Z")
+      },
+      {
+        userId: null,
+        title: "Scholarship Verification Last Date Extended",
+        content: "Verification of documents for welfare scholarship schemes has been extended. Submit caste and income declarations at computer operator office.",
+        category: "NOTICE_BOARD",
+        isPinned: false,
+        expiryDate: "2026-08-16",
+        pdfUrl: null,
+        noticeType: "SCHOLARSHIP",
+        createdAt: new Date("2026-07-17T10:00:00Z")
+      },
+      {
+        userId: null,
+        title: "School Reopening After Holidays",
+        content: "Regular classes will resume as per standard schedule. All students must present physical notebooks and verify attendance registries.",
+        category: "NOTICE_BOARD",
+        isPinned: false,
+        expiryDate: "2026-08-01",
+        pdfUrl: null,
+        noticeType: "GENERAL",
+        createdAt: new Date("2026-07-16T10:00:00Z")
+      },
+      {
+        userId: null,
+        title: "Science Exhibition Registration Started",
+        content: "Students from classes 6 to 10 are invited to submit their innovative models and project abstracts before the deadline.",
+        category: "NOTICE_BOARD",
+        isPinned: false,
+        expiryDate: "2026-08-10",
+        pdfUrl: null,
+        noticeType: "ACADEMIC",
+        createdAt: new Date("2026-07-15T10:00:00Z")
+      },
+      {
+        userId: null,
+        title: "Library Book Distribution Schedule",
+        content: "Annual library textbooks and reference directories are being issued according to class lists. Bring library cards to block registration.",
+        category: "NOTICE_BOARD",
+        isPinned: false,
+        expiryDate: "2026-07-30",
+        pdfUrl: null,
+        noticeType: "LIBRARY",
+        createdAt: new Date("2026-07-14T10:00:00Z")
+      },
+      {
+        userId: null,
+        title: "Sports Selection Trials – Football & Volleyball",
+        content: "School selection matches for under-14 and under-17 district team nominations are scheduled. Report to the physical training director.",
+        category: "NOTICE_BOARD",
+        isPinned: false,
+        expiryDate: "2026-07-25",
+        pdfUrl: null,
+        noticeType: "SPORTS",
+        createdAt: new Date("2026-07-13T10:00:00Z")
+      },
+      {
+        userId: null,
+        title: "Holiday Notification – Raksha Bandhan",
+        content: "School administrative desks and classes will remain closed for Raksha Bandhan celebrations as authorized by state welfare orders.",
+        category: "NOTICE_BOARD",
+        isPinned: false,
+        expiryDate: "2026-08-25",
+        pdfUrl: null,
+        noticeType: "HOLIDAY",
+        createdAt: new Date("2026-07-12T10:00:00Z")
+      }
+    ]
+  });
+  console.log("Seeded school notices successfully.");
+
+  console.log(`Successfully seeded ${insertedCount} student records.`);
   console.log('Seeding complete successfully.');
 }
 

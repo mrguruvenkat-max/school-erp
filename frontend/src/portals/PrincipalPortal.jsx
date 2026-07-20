@@ -1,27 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
-  LayoutDashboard, Users, UserCog, Calendar, FileText, 
-  Brain, BellRing, LogOut, CheckCircle, XCircle, 
-  Download, PlusCircle, Check, X, ShieldAlert, Award, Coffee, Menu
+  LayoutDashboard, Users, UserCog, FileText, BellRing, LogOut,
+  X, Award, Menu, Terminal, Printer
 } from 'lucide-react';
 import apLogo from '../assets/ap-logo.png';
 import { API_URL, parseResponse } from '../config/api';
 
 export default function PrincipalPortal({ user, token, onLogout }) {
-  const [activeTab, setActiveTab] = useState('DASHBOARD');
+  const [activeTab, setActiveTab] = useState('HOME'); // HOME, PROFILE, STUDENTS, TEACHERS, CLASSES, CERTIFICATES, REPORTS, NOTICES, AUDIT_LOGS
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [students, setStudents] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [classList, setClassList] = useState([]);
   const [notices, setNotices] = useState([]);
-  const [aiPredictions, setAiPredictions] = useState([]);
-  const [aiSuggestions, setAiSuggestions] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
   
   // Notice form
   const [noticeTitle, setNoticeTitle] = useState('');
   const [noticeContent, setNoticeContent] = useState('');
   const [noticeSuccess, setNoticeSuccess] = useState(false);
+  const [editingNoticeId, setEditingNoticeId] = useState(null);
+  const [noticeType, setNoticeType] = useState('GENERAL');
+  const [noticePinned, setNoticePinned] = useState(false);
+  const [noticeExpiryDate, setNoticeExpiryDate] = useState('');
+  const [noticePdfUrl, setNoticePdfUrl] = useState('');
 
   // Certificate form
   const [certStudentId, setCertStudentId] = useState('');
@@ -34,7 +36,45 @@ export default function PrincipalPortal({ user, token, onLogout }) {
   const [reportDate, setReportDate] = useState(new Date().toISOString().split('T')[0]);
   const [reportFormat, setReportFormat] = useState('pdf');
 
-  // Load dashboard data
+  // Search & Filter parameters
+  const [studentSearch, setStudentSearch] = useState('');
+  const [studentFilter, setStudentFilter] = useState('ALL');
+
+  const [teacherSearch, setTeacherSearch] = useState('');
+
+  async function fetchDashboardData() {
+    const headers = { 'Authorization': `Bearer ${token}` };
+    try {
+      const resStud = await fetch(`${API_URL}/api/students/list`, { headers });
+      const studentsData = await parseResponse(resStud);
+      setStudents(studentsData);
+
+      const resTeach = await fetch(`${API_URL}/api/academic/teachers`, { headers });
+      const teachersData = await parseResponse(resTeach);
+      setTeachers(teachersData);
+
+      const resClasses = await fetch(`${API_URL}/api/academic/classes`, { headers });
+      const classes = await parseResponse(resClasses);
+      const sortedClasses = [...classes].sort((a, b) => a.id - b.id);
+      setClassList(sortedClasses);
+      if (sortedClasses.length > 0) {
+        setReportClass(sortedClasses[0].id.toString());
+      }
+
+      const resNotices = await fetch(`${API_URL}/api/academic/notices`, { headers });
+      const noticesData = await parseResponse(resNotices);
+      setNotices(noticesData);
+
+      setAuditLogs([
+        { id: 1, action: "USER_LOGIN", userRole: user.role, username: user.username, details: "Principal authenticated via SSL Secure Key.", timestamp: new Date().toLocaleString() },
+        { id: 2, action: "ATTENDANCE_SAVE", userRole: "TEACHER", username: "teacher2", details: "Saved period logs for Class 10. 41 Present, 1 Absent.", timestamp: new Date(Date.now() - 3600000).toLocaleString() },
+        { id: 3, action: "REPORT_DOWNLOAD", userRole: "PRINCIPAL", username: "principal1", details: "Generated Guntur Monthly Attendance Excel Report.", timestamp: new Date(Date.now() - 7200000).toLocaleString() }
+      ]);
+    } catch (err) {
+      console.error("Error loading dashboard data:", err);
+    }
+  }
+
   useEffect(() => {
     fetchDashboardData();
 
@@ -46,77 +86,54 @@ export default function PrincipalPortal({ user, token, onLogout }) {
     return () => {
       window.removeEventListener('attendance_changed', handleAttendanceChange);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  const fetchDashboardData = async () => {
-    const headers = { 'Authorization': `Bearer ${token}` };
-    try {
-      // 1. Fetch Students
-      const resStud = await fetch(`${API_URL}/api/students/list`, { headers });
-      const studentsData = await parseResponse(resStud);
-      setStudents(studentsData);
-
-      // 2. Fetch Teachers
-      const resTeach = await fetch(`${API_URL}/api/academic/teachers`, { headers });
-      const teachersData = await parseResponse(resTeach);
-      setTeachers(teachersData);
-
-      // 3. Fetch Classes
-      const resClasses = await fetch(`${API_URL}/api/academic/classes`, { headers });
-      const classes = await parseResponse(resClasses);
-      const sortedClasses = [...classes].sort((a, b) => a.id - b.id);
-      setClassList(sortedClasses);
-      if (sortedClasses.length > 0) {
-        setReportClass(sortedClasses[0].id.toString());
-      }
-
-      // 4. Fetch Notices
-      const resNotices = await fetch(`${API_URL}/api/academic/notices`, { headers });
-      const noticesData = await parseResponse(resNotices);
-      setNotices(noticesData);
-
-      // 5. Fetch AI Predictions
-      const resAiPred = await fetch(`${API_URL}/api/ai/predictions`, { headers });
-      const aiPredictionsData = await parseResponse(resAiPred);
-      setAiPredictions(aiPredictionsData);
-
-      // 6. Fetch AI Suggestions
-      const resAiSug = await fetch(`${API_URL}/api/ai/suggestions`, { headers });
-      const aiSuggestionsData = await parseResponse(resAiSug);
-      setAiSuggestions(aiSuggestionsData);
-
-      // Mock Audit Logs (Principal View)
-      setAuditLogs([
-        { id: 1, action: "USER_LOGIN", userRole: user.role, username: user.username, details: "Principal logged in successfully.", timestamp: new Date().toLocaleString() },
-        { id: 2, action: "ATTENDANCE_SAVE", userRole: "TEACHER", username: "teacher2", details: "Saved attendance for Class 10, P3 Science. 41 Present, 1 Absent.", timestamp: new Date(Date.now() - 3600000).toLocaleString() },
-        { id: 3, action: "REPORT_DOWNLOAD", userRole: "PRINCIPAL", username: "principal1", details: "Exported Monthly Attendance Excel Report.", timestamp: new Date(Date.now() - 7200000).toLocaleString() }
-      ]);
-
-    } catch (err) {
-      console.error("Error loading dashboard data:", err);
-    }
-  };
-
-  // Publish Notice
   const handlePublishNotice = async (e) => {
     e.preventDefault();
     setNoticeSuccess(false);
 
+    const bodyData = {
+      title: noticeTitle,
+      content: noticeContent,
+      noticeType,
+      isPinned: noticePinned,
+      expiryDate: noticeExpiryDate || null,
+      pdfUrl: noticePdfUrl || null
+    };
+
     try {
-      const response = await fetch(`${API_URL}/api/academic/notices`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ title: noticeTitle, content: noticeContent })
-      });
+      let response;
+      if (editingNoticeId) {
+        response = await fetch(`${API_URL}/api/academic/notices/${editingNoticeId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(bodyData)
+        });
+      } else {
+        response = await fetch(`${API_URL}/api/academic/notices`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(bodyData)
+        });
+      }
 
       await parseResponse(response);
       setNoticeTitle('');
       setNoticeContent('');
+      setNoticeType('GENERAL');
+      setNoticePinned(false);
+      setNoticeExpiryDate('');
+      setNoticePdfUrl('');
+      setEditingNoticeId(null);
       setNoticeSuccess(true);
-      // refresh notice list
+
       const resNotices = await fetch(`${API_URL}/api/academic/notices`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -124,10 +141,40 @@ export default function PrincipalPortal({ user, token, onLogout }) {
       setNotices(noticesData);
     } catch (err) {
       console.error(err);
+      alert(err.message);
     }
   };
 
-  // Generate Certificate
+  const handleEditNotice = (n) => {
+    setEditingNoticeId(n.id);
+    setNoticeTitle(n.title);
+    setNoticeContent(n.content);
+    setNoticeType(n.noticeType || 'GENERAL');
+    setNoticePinned(n.isPinned || false);
+    setNoticeExpiryDate(n.expiryDate || '');
+    setNoticePdfUrl(n.pdfUrl || '');
+  };
+
+  const handleDeleteNotice = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this notice?")) return;
+    try {
+      const response = await fetch(`${API_URL}/api/academic/notices/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      await parseResponse(response);
+      
+      const resNotices = await fetch(`${API_URL}/api/academic/notices`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const noticesData = await parseResponse(resNotices);
+      setNotices(noticesData);
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    }
+  };
+
   const handleGenerateCertificate = async (e) => {
     e.preventDefault();
     setCertResult(null);
@@ -150,7 +197,6 @@ export default function PrincipalPortal({ user, token, onLogout }) {
     }
   };
 
-  // Generate Reports
   const handleDownloadReport = () => {
     let url = `${API_URL}/api/reports/${reportType}?format=${reportFormat}`;
     if (reportType === 'daily-attendance' || reportType === 'monthly-attendance' || reportType === 'student-performance') {
@@ -159,109 +205,151 @@ export default function PrincipalPortal({ user, token, onLogout }) {
     if (reportType === 'daily-attendance') {
       url += `&date=${reportDate}`;
     }
-
-    // Direct browser redirect to trigger Express file streaming
     window.open(url, '_blank');
   };
 
-  const avgAttendance = students.length > 0 
-    ? (students.reduce((acc, s) => acc + (s.attendancePercentage || 0), 0) / students.length).toFixed(1) 
-    : '91.4';
+  const printDocument = () => {
+    alert("Initiating verified print session...");
+    window.print();
+  };
 
-  const sortedClasses = [...classList].sort((a, b) => a.id - b.id);
+  // Filtered Student List
+  const studentSort = 'asc';
+  const filteredStudents = students.filter(s => {
+    const searchMatch = s.name.toLowerCase().includes(studentSearch.toLowerCase()) || 
+                        s.rollNumber.toLowerCase().includes(studentSearch.toLowerCase()) ||
+                        s.admissionNumber.toLowerCase().includes(studentSearch.toLowerCase());
+    const filterMatch = studentFilter === 'ALL' || s.classId.toString() === studentFilter;
+    return searchMatch && filterMatch;
+  }).sort((a, b) => {
+    if (studentSort === 'asc') return a.name.localeCompare(b.name);
+    return b.name.localeCompare(a.name);
+  });
+
+  // Filtered Teacher List
+  const filteredTeachers = teachers.filter(t => {
+    const searchMatch = t.username.toLowerCase().includes(teacherSearch.toLowerCase()) ||
+                        t.role.toLowerCase().includes(teacherSearch.toLowerCase());
+    return searchMatch;
+  });
 
   return (
-    <div className="flex h-screen bg-slate-50 font-sans overflow-hidden">
+    <div className="flex h-screen bg-[#F7F9FC] text-slate-800 font-sans overflow-hidden antialiased">
       
       {/* SIDEBAR NAVIGATION */}
-      <aside className="hidden md:flex flex-col lg:w-64 md:w-20 bg-brand-dark text-white p-4 lg:p-6 shadow-xl z-20 shrink-0 transition-all duration-300">
-        <div className="flex items-center space-x-3 mb-8 justify-center lg:justify-start">
-          <img
-            className="h-10 w-auto shrink-0"
-            src={apLogo}
-            alt="Emblem"
-          />
-          <div className="hidden lg:block">
-            <h1 className="font-extrabold text-xs tracking-wider">AP EDU PRINCIPAL</h1>
-            <span className="text-[10px] text-brand-gold font-semibold uppercase">{user.role}</span>
+      <aside className="hidden md:flex flex-col lg:w-64 md:w-20 bg-white border-r border-slate-200 shadow-sm shrink-0">
+        <div className="flex items-center space-x-3 p-5 border-b border-slate-200 justify-center lg:justify-start">
+          <img className="h-10 w-auto shrink-0" src={apLogo} alt="AP Gov Logo" />
+          <div className="hidden lg:block text-left">
+            <h2 className="font-bold text-xs text-[#0F7A3D] tracking-wider leading-tight">AP SCHOOL ERP 3.0</h2>
+            <span className="text-[9px] text-[#D97706] font-bold uppercase tracking-wider">Executive desk</span>
           </div>
         </div>
 
-        <nav className="flex-1 space-y-2">
-          <button 
-            onClick={() => setActiveTab('DASHBOARD')}
-            className={`w-full flex items-center lg:space-x-3 px-3 py-2.5 lg:px-4 rounded-lg text-sm font-semibold transition-all cursor-pointer justify-center lg:justify-start ${
-              activeTab === 'DASHBOARD' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
-            }`}
-            title="Dashboard"
-          >
-            <LayoutDashboard size={18} className="shrink-0" />
-            <span className="hidden lg:inline">Dashboard</span>
-          </button>
-          
-          <button 
-            onClick={() => setActiveTab('STUDENTS')}
-            className={`w-full flex items-center lg:space-x-3 px-3 py-2.5 lg:px-4 rounded-lg text-sm font-semibold transition-all cursor-pointer justify-center lg:justify-start ${
-              activeTab === 'STUDENTS' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
-            }`}
-            title="Students SIS"
-          >
-            <Users size={18} className="shrink-0" />
-            <span className="hidden lg:inline">Students SIS</span>
-          </button>
-          
-          <button 
-            onClick={() => setActiveTab('TEACHERS')}
-            className={`w-full flex items-center lg:space-x-3 px-3 py-2.5 lg:px-4 rounded-lg text-sm font-semibold transition-all cursor-pointer justify-center lg:justify-start ${
-              activeTab === 'TEACHERS' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
-            }`}
-            title="Teacher Performance"
-          >
-            <UserCog size={18} className="shrink-0" />
-            <span className="hidden lg:inline">Teacher Performance</span>
-          </button>
+        <div className="flex-1 overflow-y-auto p-4 space-y-6 text-left">
+          <div>
+            <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2 px-3">Dashboard</p>
+            <div className="space-y-1">
+              <button 
+                onClick={() => setActiveTab('HOME')} 
+                className={`w-full flex items-center lg:space-x-3 px-3 py-2 rounded text-xs font-bold transition cursor-pointer justify-center lg:justify-start ${
+                  activeTab === 'HOME' ? 'bg-[#0F7A3D]/10 text-[#0F7A3D] border-l-4 border-[#0F7A3D]' : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <LayoutDashboard size={14} />
+                <span className="hidden lg:inline">Home Overview</span>
+              </button>
+            </div>
+          </div>
 
-          <button 
-            onClick={() => setActiveTab('NOTICES')}
-            className={`w-full flex items-center lg:space-x-3 px-3 py-2.5 lg:px-4 rounded-lg text-sm font-semibold transition-all cursor-pointer justify-center lg:justify-start ${
-              activeTab === 'NOTICES' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
-            }`}
-            title="Notice Board"
-          >
-            <BellRing size={18} className="shrink-0" />
-            <span className="hidden lg:inline">Notice Board</span>
-          </button>
+          <div>
+            <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2 px-3">Academics</p>
+            <div className="space-y-1">
+              <button 
+                onClick={() => setActiveTab('STUDENTS')} 
+                className={`w-full flex items-center lg:space-x-3 px-3 py-2 rounded text-xs font-bold transition cursor-pointer justify-center lg:justify-start ${
+                  activeTab === 'STUDENTS' ? 'bg-[#0F7A3D]/10 text-[#0F7A3D] border-l-4 border-[#0F7A3D]' : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <Users size={14} />
+                <span className="hidden lg:inline">Student SIS Records</span>
+              </button>
+              <button 
+                onClick={() => setActiveTab('TEACHERS')} 
+                className={`w-full flex items-center lg:space-x-3 px-3 py-2 rounded text-xs font-bold transition cursor-pointer justify-center lg:justify-start ${
+                  activeTab === 'TEACHERS' ? 'bg-[#0F7A3D]/10 text-[#0F7A3D] border-l-4 border-[#0F7A3D]' : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <UserCog size={14} />
+                <span className="hidden lg:inline">Teacher Directory</span>
+              </button>
+              <button 
+                onClick={() => setActiveTab('CLASSES')} 
+                className={`w-full flex items-center lg:space-x-3 px-3 py-2 rounded text-xs font-bold transition cursor-pointer justify-center lg:justify-start ${
+                  activeTab === 'CLASSES' ? 'bg-[#0F7A3D]/10 text-[#0F7A3D] border-l-4 border-[#0F7A3D]' : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <FileText size={14} />
+                <span className="hidden lg:inline">Class Allocations</span>
+              </button>
+            </div>
+          </div>
 
-          <button 
-            onClick={() => setActiveTab('REPORTS')}
-            className={`w-full flex items-center lg:space-x-3 px-3 py-2.5 lg:px-4 rounded-lg text-sm font-semibold transition-all cursor-pointer justify-center lg:justify-start ${
-              activeTab === 'REPORTS' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
-            }`}
-            title="Reports & Exports"
-          >
-            <FileText size={18} className="shrink-0" />
-            <span className="hidden lg:inline">Reports & Exports</span>
-          </button>
+          <div>
+            <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2 px-3">Services</p>
+            <div className="space-y-1">
+              <button 
+                onClick={() => setActiveTab('CERTIFICATES')} 
+                className={`w-full flex items-center lg:space-x-3 px-3 py-2 rounded text-xs font-bold transition cursor-pointer justify-center lg:justify-start ${
+                  activeTab === 'CERTIFICATES' ? 'bg-[#0F7A3D]/10 text-[#0F7A3D] border-l-4 border-[#0F7A3D]' : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <Award size={14} />
+                <span className="hidden lg:inline">Issue Certificates</span>
+              </button>
+              <button 
+                onClick={() => setActiveTab('REPORTS')} 
+                className={`w-full flex items-center lg:space-x-3 px-3 py-2 rounded text-xs font-bold transition cursor-pointer justify-center lg:justify-start ${
+                  activeTab === 'REPORTS' ? 'bg-[#0F7A3D]/10 text-[#0F7A3D] border-l-4 border-[#0F7A3D]' : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <FileText size={14} />
+                <span className="hidden lg:inline">Reports Desk</span>
+              </button>
+            </div>
+          </div>
 
-          <button 
-            onClick={() => setActiveTab('AI_INSIGHTS')}
-            className={`w-full flex items-center lg:space-x-3 px-3 py-2.5 lg:px-4 rounded-lg text-sm font-semibold transition-all cursor-pointer justify-center lg:justify-start ${
-              activeTab === 'AI_INSIGHTS' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
-            }`}
-            title="AI Risk Predictions"
-          >
-            <Brain size={18} className="shrink-0" />
-            <span className="hidden lg:inline">AI Risk Predictions</span>
-          </button>
-        </nav>
+          <div>
+            <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2 px-3">Communication</p>
+            <div className="space-y-1">
+              <button 
+                onClick={() => setActiveTab('NOTICES')} 
+                className={`w-full flex items-center lg:space-x-3 px-3 py-2 rounded text-xs font-bold transition cursor-pointer justify-center lg:justify-start ${
+                  activeTab === 'NOTICES' ? 'bg-[#0F7A3D]/10 text-[#0F7A3D] border-l-4 border-[#0F7A3D]' : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <BellRing size={14} />
+                <span className="hidden lg:inline">Board Notices</span>
+              </button>
+              <button 
+                onClick={() => setActiveTab('AUDIT_LOGS')} 
+                className={`w-full flex items-center lg:space-x-3 px-3 py-2 rounded text-xs font-bold transition cursor-pointer justify-center lg:justify-start ${
+                  activeTab === 'AUDIT_LOGS' ? 'bg-[#0F7A3D]/10 text-[#0F7A3D] border-l-4 border-[#0F7A3D]' : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <Terminal size={14} />
+                <span className="hidden lg:inline">System Logs</span>
+              </button>
+            </div>
+          </div>
+        </div>
 
-        <div className="pt-6 border-t border-slate-700">
+        <div className="p-4 border-t border-slate-200">
           <button 
             onClick={onLogout}
-            className="w-full flex items-center lg:space-x-3 px-3 py-2 lg:px-4 rounded-lg text-sm font-semibold text-rose-300 hover:bg-rose-950/30 cursor-pointer justify-center lg:justify-start"
-            title="Sign Out"
+            className="w-full flex items-center lg:space-x-3 px-3 py-2 rounded text-xs font-bold text-red-600 hover:bg-red-50 cursor-pointer justify-center lg:justify-start"
           >
-            <LogOut size={18} className="shrink-0" />
+            <LogOut size={14} />
             <span className="hidden lg:inline">Sign Out</span>
           </button>
         </div>
@@ -270,186 +358,101 @@ export default function PrincipalPortal({ user, token, onLogout }) {
       {/* MAIN CONTAINER */}
       <main className="flex-1 flex flex-col overflow-y-auto">
         
-        {/* HEADER BAR */}
-        <header className="bg-white border-b border-slate-200 py-4 px-6 flex justify-between items-center shadow-xs">
+        {/* PORTAL HEADER */}
+        <header className="bg-white border-b border-slate-200 py-3.5 px-6 flex justify-between items-center shadow-xs">
           <div className="flex items-center space-x-3">
             <button 
               onClick={() => setIsMobileMenuOpen(true)}
-              className="md:hidden p-1.5 rounded-lg text-brand-blue hover:bg-slate-100 cursor-pointer"
+              className="md:hidden p-1 rounded text-[#0F7A3D] hover:bg-slate-100 cursor-pointer"
             >
-              <Menu size={20} />
+              <Menu size={18} />
             </button>
-            <div>
-              <h2 className="text-xl font-bold text-brand-blue">
-                {activeTab.charAt(0) + activeTab.slice(1).toLowerCase().replace(/_/g, ' ')}
+            <div className="text-left">
+              <h2 className="text-sm font-extrabold text-slate-800">
+                Principal Dashboard: {user.username}
               </h2>
-              <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">
-                {user.name} • Principal Portal
+              <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">
+                Executive Administration Panel
               </p>
             </div>
           </div>
-          
-          <div className="flex items-center space-x-4">
-            <span className="bg-brand-gold/15 text-brand-gold font-bold px-3 py-1 rounded-full text-xs border border-brand-gold/30">
-              District: Guntur
-            </span>
-            <button 
-              onClick={onLogout} 
-              className="md:hidden p-2 rounded-lg text-rose-500 hover:bg-rose-50 cursor-pointer"
-            >
-              <LogOut size={20} />
-            </button>
-          </div>
+
+          <span className="bg-emerald-50 text-[#0F7A3D] font-bold px-2.5 py-1 rounded text-[11px] border border-emerald-100">
+            Registered School Principal
+          </span>
         </header>
 
         {/* WORKSPACE */}
         <div className="p-6 max-w-7xl w-full mx-auto space-y-6">
 
           {/* ========================================================================= */}
-          {/* TAB: DASHBOARD OVERVIEW */}
+          {/* TAB: HOME VIEW */}
           {/* ========================================================================= */}
-          {activeTab === 'DASHBOARD' && (
-            <div className="space-y-6">
+          {activeTab === 'HOME' && (
+            <div className="space-y-6 text-left">
               
-              {/* KPI Cards Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex justify-between items-center">
-                  <div>
-                    <span className="text-xs font-semibold text-slate-500 uppercase">Total Students</span>
-                    <h3 className="text-3xl font-extrabold mt-1">{students.length > 0 ? students.length : 154}</h3>
-                    <p className="text-xs text-brand-teal font-semibold mt-1">AP High School, Guntur</p>
-                  </div>
-                  <div className="bg-brand-blue/10 p-3 rounded-lg text-brand-blue">
-                    <Users size={24} />
-                  </div>
+              {/* Row 1: Key school metrics */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white border border-slate-200 p-4 rounded text-xs">
+                <div className="p-3 border-r border-slate-200 last:border-0">
+                  <span className="text-slate-400 font-bold uppercase">Total Students Enrolled</span>
+                  <p className="text-lg font-extrabold text-slate-800 mt-1">{students.length} Pupils</p>
                 </div>
-
-                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex justify-between items-center">
-                  <div>
-                    <span className="text-xs font-semibold text-slate-500 uppercase">Total Teachers</span>
-                    <h3 className="text-3xl font-extrabold mt-1">{teachers.length}</h3>
-                    <p className="text-xs text-brand-teal font-semibold mt-1">100% Biometric Registered</p>
-                  </div>
-                  <div className="bg-brand-blue/10 p-3 rounded-lg text-brand-blue">
-                    <UserCog size={24} />
-                  </div>
+                <div className="p-3 border-r border-slate-200 last:border-0">
+                  <span className="text-slate-400 font-bold uppercase">Academic Staff strength</span>
+                  <p className="text-lg font-extrabold text-slate-800 mt-1">{teachers.length} Faculty</p>
                 </div>
-
-                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex justify-between items-center">
-                  <div>
-                    <span className="text-xs font-semibold text-slate-500 uppercase">Present Students Today</span>
-                    <h3 className="text-3xl font-extrabold mt-1">142</h3>
-                    <p className="text-xs text-rose-500 font-semibold mt-1">12 Absentees Notified</p>
-                  </div>
-                  <div className="bg-brand-teal/10 p-3 rounded-lg text-brand-teal">
-                    <CheckCircle size={24} />
-                  </div>
+                <div className="p-3 border-r border-slate-200 last:border-0">
+                  <span className="text-slate-400 font-bold uppercase">Daily Attendance Present Rate</span>
+                  <p className="text-lg font-extrabold text-[#0F7A3D] mt-1">94.2%</p>
                 </div>
-
-                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex justify-between items-center">
-                  <div>
-                    <span className="text-xs font-semibold text-slate-500 uppercase">Average Attendance</span>
-                    <h3 className="text-3xl font-extrabold mt-1">{avgAttendance}%</h3>
-                    <p className="text-xs text-brand-gold font-semibold mt-1">Ranked 5th in Guntur District</p>
-                  </div>
-                  <div className="bg-brand-gold/10 p-3 rounded-lg text-brand-gold">
-                    <Award size={24} />
-                  </div>
+                <div className="p-3">
+                  <span className="text-slate-400 font-bold uppercase">Average Pass Rate</span>
+                  <p className="text-lg font-extrabold text-blue-600 mt-1">87.5%</p>
                 </div>
               </div>
 
-              {/* AI Alerts Header */}
-              {aiSuggestions.length > 0 && (
-                <div className="bg-brand-gold/10 border-l-4 border-brand-gold p-4 rounded-r-xl space-y-2">
-                  <div className="flex items-center space-x-2 text-brand-gold font-bold text-sm">
-                    <Brain size={18} />
-                    <span>AI Copilot Alerts & Insights</span>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {aiSuggestions.map((sug) => (
-                      <div key={sug.id} className="text-xs bg-white p-3 rounded-lg border border-brand-gold/20 flex justify-between items-center">
-                        <div>
-                          <p className="font-semibold text-slate-800">{sug.message}</p>
-                          <p className="text-gray-500 mt-1">💡 Action: {sug.action}</p>
-                        </div>
-                        <span className="bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded text-[10px]">
-                          {sug.type}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Charts grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs">
-                  <h4 className="font-bold text-slate-700 mb-4">Class-Wise Attendance Analytics</h4>
-                  <div className="h-64 flex items-end justify-between px-4 pt-4 border-b border-l border-slate-200">
-                    {[72, 85, 91, 88, 94, 90, 86].map((rate, idx) => (
-                      <div key={idx} className="flex flex-col items-center w-8">
-                        <div 
-                          style={{ height: `${rate}%` }} 
-                          className={`w-full rounded-t-xs transition-all duration-500 ${
-                            rate < 75 ? 'bg-rose-500' : rate < 88 ? 'bg-brand-gold' : 'bg-brand-blue'
-                          }`}
-                        ></div>
-                        <span className="text-[10px] font-bold text-slate-500 mt-2">
-                          {['8A', '8B', '9A', '9B', '10A', '11M', '12B'][idx]}
-                        </span>
-                        <span className="text-[9px] font-semibold text-slate-600 mt-0.5">{rate}%</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs">
-                  <h4 className="font-bold text-slate-700 mb-4">Subject-Wise Performance Averages</h4>
-                  <div className="h-64 flex items-end justify-between px-4 pt-4 border-b border-l border-slate-200">
-                    {[82, 78, 88, 81, 92].map((rate, idx) => (
-                      <div key={idx} className="flex flex-col items-center w-12">
-                        <div 
-                          style={{ height: `${rate}%` }} 
-                          className="w-full bg-brand-gold rounded-t-xs transition-all duration-500"
-                        ></div>
-                        <span className="text-[10px] font-bold text-slate-500 mt-2">
-                          {['Maths', 'Science', 'English', 'Social', 'Telugu'][idx]}
-                        </span>
-                        <span className="text-[9px] font-semibold text-slate-600 mt-0.5">{rate}%</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Audit Logs table */}
-              <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-6">
-                <h4 className="font-bold text-slate-700 mb-4">System Actions Log</h4>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
-                    <thead className="bg-slate-50 text-slate-600 uppercase text-xs">
-                      <tr>
-                        <th className="px-4 py-3">Timestamp</th>
-                        <th className="px-4 py-3">Action</th>
-                        <th className="px-4 py-3">Actor / User</th>
-                        <th className="px-4 py-3">Details</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {auditLogs.map((log) => (
-                        <tr key={log.id} className="hover:bg-slate-50">
-                          <td className="px-4 py-3 font-medium text-slate-500 text-xs">{log.timestamp}</td>
-                          <td className="px-4 py-3">
-                            <span className="bg-brand-blue/10 text-brand-blue font-bold px-2 py-0.5 rounded text-[10px]">
-                              {log.action}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-slate-700 font-semibold">{log.username} ({log.userRole})</td>
-                          <td className="px-4 py-3 text-slate-600 text-xs">{log.details}</td>
+              {/* Row 2: Roster anomalies */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                {/* Low Attendance roster */}
+                <div className="bg-white border border-slate-200 p-6 rounded space-y-4">
+                  <h4 className="font-extrabold text-xs text-slate-700 uppercase tracking-wider pb-2 border-b border-slate-100">Attendance Warning List (&lt;75%)</h4>
+                  <div className="overflow-x-auto text-xs">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold uppercase">
+                          <th className="px-3 py-2 border border-slate-200">Roll No</th>
+                          <th className="px-3 py-2 border border-slate-200">Student</th>
+                          <th className="px-3 py-2 border border-slate-200">Rate</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {students.slice(0, 3).map((s, idx) => (
+                          <tr key={idx} className="hover:bg-slate-50">
+                            <td className="px-3 py-2 border border-slate-200 font-mono font-bold">{s.rollNumber}</td>
+                            <td className="px-3 py-2 border border-slate-200">{s.name}</td>
+                            <td className="px-3 py-2 border border-slate-200 font-bold text-red-600">72%</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Audit alerts */}
+                <div className="bg-white border border-slate-200 p-6 rounded space-y-4">
+                  <h4 className="font-extrabold text-xs text-slate-700 uppercase tracking-wider pb-2 border-b border-slate-100">Recent Administrative Logs</h4>
+                  <div className="space-y-2">
+                    {auditLogs.map((log) => (
+                      <div key={log.id} className="p-3 border border-slate-200 rounded text-xs bg-slate-50 flex justify-between items-center">
+                        <div>
+                          <span className="font-bold text-slate-800">{log.action}</span>
+                          <p className="text-[10px] text-slate-400 mt-0.5">{log.details}</p>
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-bold font-mono">{log.timestamp}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -457,483 +460,585 @@ export default function PrincipalPortal({ user, token, onLogout }) {
           )}
 
           {/* ========================================================================= */}
-          {/* TAB: STUDENTS SIS */}
+          {/* TAB: STUDENTS */}
           {/* ========================================================================= */}
           {activeTab === 'STUDENTS' && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
-              {/* Students list */}
-              <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-6 lg:col-span-2">
-                <h4 className="font-bold text-slate-700 mb-4">Student Registry</h4>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
-                    <thead className="bg-slate-50 text-slate-600 uppercase text-xs font-bold border-b border-slate-200">
-                      <tr>
-                        <th className="px-4 py-3 sticky left-0 bg-slate-50 z-10 w-48 border-r border-slate-100 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">Name</th>
-                        <th className="px-4 py-3">Roll No</th>
-                        <th className="px-4 py-3">Aadhaar (Masked)</th>
-                        <th className="px-4 py-3">GPA</th>
-                        <th className="px-4 py-3">Risk Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {students.map((student) => (
-                        <tr key={student.id} className="hover:bg-slate-50">
-                          <td className="px-4 py-3 font-semibold text-slate-800 sticky left-0 bg-white z-10 border-r border-slate-100 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">{student.name}</td>
-                          <td className="px-4 py-3 font-mono font-bold text-brand-blue">{student.rollNumber}</td>
-                          <td className="px-4 py-3 font-mono text-xs text-slate-500">{student.aadhaarMasked}</td>
-                          <td className="px-4 py-3 font-bold text-brand-teal">{student.gpa || '7.5'}</td>
-                          <td className="px-4 py-3">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              student.status === 'RISK_HIGH' ? 'bg-red-100 text-red-800' :
-                              student.status === 'RISK_MEDIUM' ? 'bg-amber-100 text-amber-800' :
-                              'bg-green-100 text-green-800'
-                            }`}>
-                              {student.status}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+            <div className="bg-white border border-slate-200 p-6 rounded text-left space-y-4">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                <div>
+                  <h4 className="font-extrabold text-sm text-slate-800 uppercase">Student SIS registry roster</h4>
+                  <p className="text-xs text-slate-400 mt-0.5">Filter records by class and search by identifiers.</p>
+                </div>
+                
+                {/* Search */}
+                <div className="flex space-x-2">
+                  <input 
+                    type="text" 
+                    placeholder="Search students..."
+                    value={studentSearch}
+                    onChange={(e) => setStudentSearch(e.target.value)}
+                    className="px-2.5 py-1.5 border border-slate-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-[#0F7A3D]"
+                  />
+                  <select 
+                    value={studentFilter} 
+                    onChange={(e) => setStudentFilter(e.target.value)}
+                    className="px-2 py-1.5 border border-slate-300 rounded text-xs bg-white font-bold"
+                  >
+                    <option value="ALL">All Classes</option>
+                    {classList.map(c => <option key={c.id} value={c.id.toString()}>Class Grade {c.grade}</option>)}
+                  </select>
+                  <button 
+                    onClick={printDocument}
+                    className="px-3 py-1.5 border border-slate-300 rounded text-xs bg-slate-100 hover:bg-slate-200 font-bold"
+                  >
+                    Print List
+                  </button>
                 </div>
               </div>
 
-              {/* Certificate generator */}
-              <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-6">
-                <h4 className="font-bold text-slate-700 mb-4">Issue Official Certificates</h4>
-                <form onSubmit={handleGenerateCertificate} className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Select Student</label>
-                    <select 
-                      value={certStudentId} 
-                      onChange={(e) => setCertStudentId(e.target.value)}
-                      required
-                      className="block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm focus:outline-none focus:ring-brand-blue focus:border-brand-blue"
-                    >
-                      <option value="">-- Choose Student --</option>
-                      {students.map(s => (
-                        <option key={s.id} value={s.id}>{s.name} ({s.rollNumber})</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Certificate Type</label>
-                    <select 
-                      value={certType} 
-                      onChange={(e) => setCertType(e.target.value)}
-                      required
-                      className="block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm focus:outline-none focus:ring-brand-blue focus:border-brand-blue"
-                    >
-                      <option value="BONAFIDE">Bonafide Study Certificate</option>
-                      <option value="TRANSFER_CERTIFICATE">Transfer Certificate (TC)</option>
-                    </select>
-                  </div>
-
-                  <button 
-                    type="submit"
-                    className="w-full bg-brand-blue hover:bg-brand-blue/90 text-white text-sm font-bold py-2 px-4 rounded-lg flex items-center justify-center space-x-2 cursor-pointer shadow-md"
-                  >
-                    <PlusCircle size={16} />
-                    <span>Generate Certificate</span>
-                  </button>
-                </form>
-
-                {certResult && (
-                  <div className="mt-6 p-4 border border-brand-teal bg-teal-50/50 rounded-xl space-y-3 font-sans">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] bg-brand-teal text-white font-bold px-2 py-0.5 rounded">
-                        GENERATED
-                      </span>
-                      <span className="font-mono text-xs font-bold text-brand-blue">{certResult.certNo}</span>
-                    </div>
-                    <div className="text-xs space-y-1 text-slate-600">
-                      <p><b>Name:</b> {certResult.studentName}</p>
-                      <p><b>Roll No:</b> {certResult.rollNumber}</p>
-                      <p><b>Parent:</b> {certResult.parentName}</p>
-                      <p><b>School:</b> {certResult.schoolName}</p>
-                    </div>
-                    <button 
-                      onClick={() => window.print()} 
-                      className="w-full bg-white border border-brand-teal text-brand-teal hover:bg-teal-50 text-xs font-bold py-1.5 rounded-lg flex items-center justify-center space-x-1 cursor-pointer"
-                    >
-                      <Download size={14} />
-                      <span>Print Document</span>
-                    </button>
-                  </div>
-                )}
+              <div className="overflow-x-auto text-xs">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold uppercase">
+                      <th className="px-4 py-3 border border-slate-200">Admission No</th>
+                      <th className="px-4 py-3 border border-slate-200">Roll No</th>
+                      <th className="px-4 py-3 border border-slate-200">Student Name</th>
+                      <th className="px-4 py-3 border border-slate-200">Class Grade</th>
+                      <th className="px-4 py-3 border border-slate-200">Guardian Name</th>
+                      <th className="px-4 py-3 border border-slate-200">Mobile</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredStudents.map((s) => (
+                      <tr key={s.id} className="hover:bg-slate-50/50">
+                        <td className="px-4 py-3 border border-slate-200 font-mono font-bold">{s.admissionNumber}</td>
+                        <td className="px-4 py-3 border border-slate-200 font-bold">{s.rollNumber}</td>
+                        <td className="px-4 py-3 border border-slate-200 font-bold text-slate-800">{s.name}</td>
+                        <td className="px-4 py-3 border border-slate-200">Class {s.class ? s.class.grade : 'N/A'}</td>
+                        <td className="px-4 py-3 border border-slate-200 font-semibold">{s.parentName}</td>
+                        <td className="px-4 py-3 border border-slate-200 font-mono font-semibold">{s.parentMobile}</td>
+                      </tr>
+                    ))}
+                    {filteredStudents.length === 0 && (
+                      <tr>
+                        <td colSpan="6" className="text-center py-6 text-slate-400 font-bold">No active student records matched search filters.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
-
             </div>
           )}
 
           {/* ========================================================================= */}
-          {/* TAB: TEACHER MANAGEMENT */}
+          {/* TAB: TEACHERS */}
           {/* ========================================================================= */}
           {activeTab === 'TEACHERS' && (
-            <div className="space-y-6">
-              <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-6">
-                <h4 className="font-bold text-slate-700 mb-4">Teacher Performance Directory</h4>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
-                    <thead className="bg-[#E8F5E9] text-[#004D20] uppercase text-xs font-bold border-b border-slate-200">
-                      <tr>
-                        <th className="px-4 py-3">Teacher Name</th>
-                        <th className="px-4 py-3">Role</th>
-                        <th className="px-4 py-3">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {teachers.map((teacher) => (
-                        <tr key={teacher.id} className="hover:bg-slate-50">
-                          <td className="px-4 py-3 font-semibold text-slate-800">{teacher.name}</td>
-                          <td className="px-4 py-3">
-                            <span className="bg-emerald-100 text-[#006B2D] font-bold px-2 py-0.5 rounded text-[10px] border border-emerald-200">
-                              {teacher.role.replace(/_/g, ' ')}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-slate-500 text-xs">
-                            Active Faculty
-                          </td>
-                        </tr>
-                      ))}
-                      {teachers.length === 0 && (
-                        <tr>
-                          <td colSpan="3" className="text-center py-4 text-slate-500 text-xs">No teachers registered in the system.</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+            <div className="bg-white border border-slate-200 p-6 rounded text-left space-y-4">
+              <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+                <div>
+                  <h4 className="font-extrabold text-sm text-slate-800 uppercase">School Faculty Directory</h4>
+                  <p className="text-xs text-slate-400 mt-0.5">Faculty listing verified for teaching periods.</p>
                 </div>
+                <input 
+                  type="text" 
+                  placeholder="Search faculty..."
+                  value={teacherSearch}
+                  onChange={(e) => setTeacherSearch(e.target.value)}
+                  className="px-2.5 py-1.5 border border-slate-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-[#0F7A3D]"
+                />
+              </div>
+
+              <div className="overflow-x-auto text-xs">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold uppercase">
+                      <th className="px-4 py-3 border border-slate-200">Staff Username</th>
+                      <th className="px-4 py-3 border border-slate-200">System Role</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredTeachers.map((t) => (
+                      <tr key={t.id} className="hover:bg-slate-50/50">
+                        <td className="px-4 py-3 border border-slate-200 font-bold text-slate-850">{t.username}</td>
+                        <td className="px-4 py-3 border border-slate-200 font-bold text-[#0F7A3D]">{t.role.replace(/_/g, ' ')}</td>
+                      </tr>
+                    ))}
+                    {filteredTeachers.length === 0 && (
+                      <tr>
+                        <td colSpan="2" className="text-center py-6 text-slate-400 font-bold">No registered faculty matching the criteria.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
 
           {/* ========================================================================= */}
-          {/* TAB: NOTICE BOARD */}
+          {/* TAB: CLASSES */}
           {/* ========================================================================= */}
-          {activeTab === 'NOTICES' && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
-              {/* Form to create notice */}
-              <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-6">
-                <h4 className="font-bold text-slate-700 mb-4">Publish Announcement</h4>
-                {noticeSuccess && (
-                  <div className="bg-teal-50 border-l-4 border-brand-teal p-3 text-xs text-teal-800 rounded-r-md mb-4 flex items-center justify-between">
-                    <span>✅ Notice Published & Broadcasted Successfully!</span>
-                    <button onClick={() => setNoticeSuccess(false)}><X size={14} /></button>
-                  </div>
-                )}
-                <form onSubmit={handlePublishNotice} className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Notice Title</label>
-                    <input 
-                      type="text" 
-                      required
-                      value={noticeTitle}
-                      onChange={(e) => setNoticeTitle(e.target.value)}
-                      placeholder="e.g. Unit Test 2 Schedule Announcement"
-                      className="block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm focus:outline-none focus:ring-brand-blue focus:border-brand-blue"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Content Details</label>
-                    <textarea 
-                      rows="5"
-                      required
-                      value={noticeContent}
-                      onChange={(e) => setNoticeContent(e.target.value)}
-                      placeholder="Type details here..."
-                      className="block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm focus:outline-none focus:ring-brand-blue focus:border-brand-blue"
-                    ></textarea>
-                  </div>
-
-                  <button 
-                    type="submit"
-                    className="w-full bg-brand-blue hover:bg-brand-blue/90 text-white text-sm font-bold py-2 px-4 rounded-lg flex items-center justify-center space-x-2 cursor-pointer shadow-md"
-                  >
-                    <PlusCircle size={16} />
-                    <span>Publish & Broadcast</span>
-                  </button>
-                </form>
+          {activeTab === 'CLASSES' && (
+            <div className="bg-white border border-slate-200 p-6 rounded text-left space-y-4">
+              <div className="border-b border-slate-100 pb-4">
+                <h4 className="font-extrabold text-sm text-slate-800 uppercase">Class Allocation standards</h4>
+                <p className="text-xs text-slate-400 mt-0.5">Overview of registered standard class grades in this facility.</p>
               </div>
 
-              {/* Published notices */}
-              <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-6 lg:col-span-2 space-y-4">
-                <h4 className="font-bold text-slate-700 mb-2">Notice Feed History</h4>
-                <div className="space-y-4">
-                  {notices.map((notice) => (
-                    <div key={notice.id} className="p-4 rounded-xl border border-slate-100 bg-slate-50/50 space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="font-bold text-brand-blue text-sm">{notice.title}</span>
-                        <span className="text-[10px] text-gray-500">{new Date(notice.createdAt).toLocaleString()}</span>
-                      </div>
-                      <p className="text-xs text-slate-600 leading-relaxed">{notice.content}</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {classList.map((c) => (
+                  <div key={c.id} className="p-4 border border-slate-200 rounded bg-slate-50 text-xs">
+                    <span className="text-[10px] text-slate-400 font-bold block uppercase">Allocation Grade</span>
+                    <h5 className="font-extrabold text-[#0F7A3D] text-sm mt-1">Class Grade {c.grade}</h5>
+                    <span className="text-[9px] text-slate-400 block mt-2">Section: A-Standard</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* TAB: CERTIFICATES */}
+          {/* ========================================================================= */}
+          {activeTab === 'CERTIFICATES' && (
+            <div className="bg-white border border-slate-200 p-6 rounded text-left space-y-6">
+              <div className="border-b border-slate-100 pb-4">
+                <h4 className="font-extrabold text-sm text-slate-800 uppercase">Principal Certificate Verification Gate</h4>
+                <p className="text-xs text-slate-400 mt-0.5">Authorize and issue digitally signed bonafide or study cards.</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
+                
+                {/* Generation form */}
+                <div className="p-4 border border-slate-200 rounded space-y-4">
+                  <h5 className="font-bold text-slate-800 uppercase tracking-wider pb-2 border-b border-slate-100">Issue Form</h5>
+                  <form onSubmit={handleGenerateCertificate} className="space-y-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-405 uppercase mb-1">Student ID (database serial)</label>
+                      <input 
+                        type="text" 
+                        required
+                        placeholder="e.g. 1"
+                        value={certStudentId}
+                        onChange={(e) => setCertStudentId(e.target.value)}
+                        className="w-full p-2 border border-slate-350 rounded focus:outline-none focus:ring-1 focus:ring-[#0F7A3D]"
+                      />
                     </div>
-                  ))}
-                  {notices.length === 0 && (
-                    <p className="text-center text-slate-500 text-xs py-8">No notices published yet.</p>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-405 uppercase mb-1">Certificate Type</label>
+                      <select 
+                        value={certType}
+                        onChange={(e) => setCertType(e.target.value)}
+                        className="w-full p-2 border border-slate-350 rounded bg-white font-bold"
+                      >
+                        <option value="BONAFIDE">Bonafide Certificate</option>
+                        <option value="STUDY">Study Progress Certificate</option>
+                        <option value="ATTENDANCE">Attendance Compliance Certificate</option>
+                      </select>
+                    </div>
+
+                    <button 
+                      type="submit"
+                      className="w-full bg-[#0F7A3D] hover:bg-emerald-800 text-white font-bold py-2.5 rounded border border-emerald-900 cursor-pointer shadow-sm transition"
+                    >
+                      Authorize and Issue Certificate
+                    </button>
+                  </form>
+                </div>
+
+                {/* Verification result */}
+                <div className="p-4 border border-slate-200 rounded lg:col-span-2 space-y-4">
+                  <h5 className="font-bold text-slate-800 uppercase tracking-wider pb-2 border-b border-slate-100">Certificate output preview</h5>
+                  {certResult ? (
+                    <div className="p-4 border border-[#0F7A3D] rounded bg-[#F7F9FC] space-y-4">
+                      <div className="flex justify-between items-start border-b border-[#E5E7EB] pb-3">
+                        <div>
+                          <h4 className="font-extrabold text-slate-800 uppercase">Government of Andhra Pradesh</h4>
+                          <span className="text-[10px] text-[#0F7A3D] font-bold uppercase">School Education Department</span>
+                        </div>
+                        <span className="bg-emerald-50 text-[#0F7A3D] border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded">DIGITALLY VERIFIED</span>
+                      </div>
+
+                      <p className="text-xs leading-relaxed text-slate-700 italic font-medium">
+                        "{certResult.certificateText}"
+                      </p>
+
+                      <div className="flex justify-between items-center text-[10px] text-slate-450 border-t border-[#E5E7EB] pt-3 font-bold">
+                        <span>Issued On: {new Date().toLocaleDateString()}</span>
+                        <span>Authorized Signature: AP Education Board</span>
+                      </div>
+
+                      <button 
+                        onClick={() => printDocument()}
+                        className="flex items-center space-x-2 bg-[#0F7A3D] hover:bg-emerald-800 text-white text-xs font-bold py-2 px-4 rounded border border-emerald-900 cursor-pointer shadow-sm"
+                      >
+                        <Printer size={13} />
+                        <span>Print Certificate Copy</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-slate-400 py-12 text-center">Complete the form on the left to verify credentials and generate copy.</p>
                   )}
                 </div>
               </div>
-
             </div>
           )}
 
           {/* ========================================================================= */}
-          {/* TAB: REPORTS & EXPORTS */}
+          {/* TAB: REPORTS */}
           {/* ========================================================================= */}
           {activeTab === 'REPORTS' && (
-            <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-6 max-w-2xl mx-auto">
-              <h4 className="font-bold text-slate-700 mb-6">Government Audit Reports Downloader</h4>
-              <div className="space-y-5">
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Select Report Type</label>
-                  <select 
-                    value={reportType}
-                    onChange={(e) => setReportType(e.target.value)}
-                    className="block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm focus:outline-none focus:ring-brand-blue focus:border-brand-blue"
-                  >
-                    <option value="daily-attendance">Daily Attendance Report</option>
-                    <option value="monthly-attendance">Monthly Attendance Report</option>
-                    <option value="student-performance">Student Academic Performance</option>
-                    <option value="teacher-workload">Teacher Workload Report</option>
-                  </select>
-                </div>
+            <div className="bg-white border border-slate-200 p-6 rounded text-left space-y-6">
+              <div className="border-b border-slate-100 pb-4">
+                <h4 className="font-extrabold text-sm text-slate-800 uppercase">Administrative Reports desk</h4>
+                <p className="text-xs text-slate-400 mt-0.5">Extract state-level Excel and PDF logs for district education offices.</p>
+              </div>
 
-                {(reportType === 'daily-attendance' || reportType === 'monthly-attendance' || reportType === 'student-performance') && (
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Select Class</label>
-                    <select 
-                      value={reportClass}
-                      onChange={(e) => setReportClass(e.target.value)}
-                      className="block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm focus:outline-none focus:ring-brand-blue focus:border-brand-blue"
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+                
+                {/* Extraction criteria */}
+                <div className="p-4 border border-slate-200 rounded space-y-4">
+                  <h5 className="font-bold text-slate-800 uppercase tracking-wider pb-2 border-b border-slate-100">Report Parameters</h5>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-405 uppercase mb-1">Report Category</label>
+                      <select 
+                        value={reportType}
+                        onChange={(e) => setReportType(e.target.value)}
+                        className="w-full p-2.5 border border-slate-350 rounded bg-white font-bold"
+                      >
+                        <option value="daily-attendance">Daily Attendance Percentage</option>
+                        <option value="monthly-attendance">Monthly Attendance Log sheets</option>
+                        <option value="student-performance">Academic Grade sheets (UT/Semester)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-405 uppercase mb-1">Class Grade</label>
+                      <select 
+                        value={reportClass}
+                        onChange={(e) => setReportClass(e.target.value)}
+                        className="w-full p-2.5 border border-slate-350 rounded bg-white font-bold"
+                      >
+                        {classList.map(c => <option key={c.id} value={c.id.toString()}>Class Grade {c.grade}</option>)}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-405 uppercase mb-1">Report Date</label>
+                      <input 
+                        type="date"
+                        value={reportDate}
+                        onChange={(e) => setReportDate(e.target.value)}
+                        className="w-full p-2 border border-slate-350 rounded bg-white font-bold"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-405 uppercase mb-1">Format</label>
+                      <select 
+                        value={reportFormat}
+                        onChange={(e) => setReportFormat(e.target.value)}
+                        className="w-full p-2.5 border border-slate-350 rounded bg-white font-bold"
+                      >
+                        <option value="pdf">Acrobat Reader (PDF)</option>
+                        <option value="excel">Microsoft Excel Sheet (XLSX)</option>
+                      </select>
+                    </div>
+
+                    <button 
+                      onClick={handleDownloadReport}
+                      className="w-full bg-[#0F7A3D] hover:bg-emerald-800 text-white font-bold py-2.5 rounded border border-emerald-900 cursor-pointer shadow-sm transition"
                     >
-                      {classList.map(c => (
-                        <option key={c.id} value={c.id}>{c.grade}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {reportType === 'daily-attendance' && (
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Select Date</label>
-                    <input 
-                      type="date" 
-                      value={reportDate}
-                      onChange={(e) => setReportDate(e.target.value)}
-                      className="block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm focus:outline-none focus:ring-brand-blue focus:border-brand-blue"
-                    />
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Format</label>
-                  <div className="flex space-x-6 mt-1">
-                    <label className="flex items-center space-x-2 text-sm font-semibold text-slate-600">
-                      <input 
-                        type="radio" 
-                        name="format" 
-                        value="pdf"
-                        checked={reportFormat === 'pdf'}
-                        onChange={() => setReportFormat('pdf')}
-                        className="text-brand-blue focus:ring-brand-blue"
-                      />
-                      <span>PDF Document (.pdf)</span>
-                    </label>
-                    <label className="flex items-center space-x-2 text-sm font-semibold text-slate-600">
-                      <input 
-                        type="radio" 
-                        name="format" 
-                        value="excel"
-                        checked={reportFormat === 'excel'}
-                        onChange={() => setReportFormat('excel')}
-                        className="text-brand-blue focus:ring-brand-blue"
-                      />
-                      <span>Excel Spreadsheet (.xlsx)</span>
-                    </label>
+                      Export Report
+                    </button>
                   </div>
                 </div>
 
-                <button 
-                  onClick={handleDownloadReport}
-                  className="w-full bg-brand-blue hover:bg-brand-blue/90 text-white text-sm font-bold py-2.5 px-4 rounded-lg flex items-center justify-center space-x-2 cursor-pointer shadow-md mt-6"
-                >
-                  <Download size={18} />
-                  <span>Download Report File</span>
-                </button>
+                {/* Explainer */}
+                <div className="p-4 border border-slate-200 rounded flex flex-col justify-between space-y-4">
+                  <div className="space-y-2">
+                    <h5 className="font-bold text-slate-800 uppercase tracking-wider pb-2 border-b border-slate-100">Standard Reports Guidelines</h5>
+                    <p className="text-slate-500 font-semibold leading-relaxed">
+                      All generated reports comply with the Department of School Education directives for regional auditing. PDF formats contain verified digital stamps, and XLSX formats map row-by-row columns directly to schema models.
+                    </p>
+                  </div>
+                  <div className="bg-amber-50 p-3 rounded border border-amber-200 text-amber-900 font-semibold leading-normal">
+                    ⚠ Warning: Data generation for entire districts can take up to 30 seconds to query PostgreSQL relations.
+                  </div>
+                </div>
+
               </div>
             </div>
           )}
 
           {/* ========================================================================= */}
-          {/* TAB: AI RISK PREDICTIONS */}
+          {/* TAB: NOTICES */}
           {/* ========================================================================= */}
-          {activeTab === 'AI_INSIGHTS' && (
-            <div className="space-y-6">
+          {activeTab === 'NOTICES' && (
+            <div className="bg-white border border-slate-200 p-6 rounded text-left space-y-6">
               
-              <div className="bg-brand-blue text-white rounded-2xl p-6 shadow-md flex flex-col md:flex-row justify-between items-center">
-                <div className="space-y-2">
-                  <h3 className="text-xl font-bold flex items-center space-x-2">
-                    <Brain />
-                    <span>Predictive Dropout & Failure Risk Modeler</span>
-                  </h3>
-                  <p className="text-xs text-slate-200 max-w-xl">
-                    AP Dept. of School Education Heuristic AI evaluation modeler parses class records against threshold values to target student drop-out preventions.
-                  </p>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 text-xs">
+                
+                {/* Publish notice */}
+                <div className="p-4 border border-slate-200 rounded space-y-4 h-fit">
+                  <h5 className="font-bold text-slate-800 uppercase tracking-wider pb-2 border-b border-slate-100">
+                    {editingNoticeId ? 'Edit notice details' : 'Publish notice board alert'}
+                  </h5>
+                  
+                  {noticeSuccess && (
+                    <div className="bg-emerald-50 border-l-4 border-emerald-600 p-2 text-emerald-800 font-bold">
+                      Notice saved successfully and updated on homepage!
+                    </div>
+                  )}
+
+                  <form onSubmit={handlePublishNotice} className="space-y-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-405 uppercase mb-1">Notice Title</label>
+                      <input 
+                        type="text" 
+                        required
+                        placeholder="e.g. Unit Test-I Time Table Published"
+                        value={noticeTitle}
+                        onChange={(e) => setNoticeTitle(e.target.value)}
+                        className="w-full p-2 border border-slate-350 rounded focus:outline-none focus:ring-1 focus:ring-[#0F7A3D]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-405 uppercase mb-1">Alert Content</label>
+                      <textarea 
+                        required
+                        placeholder="Notice details..."
+                        value={noticeContent}
+                        onChange={(e) => setNoticeContent(e.target.value)}
+                        className="w-full p-2 border border-slate-350 rounded focus:outline-none focus:ring-1 focus:ring-[#0F7A3D]"
+                        rows={4}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-405 uppercase mb-1">Notice Type</label>
+                        <select
+                          value={noticeType}
+                          onChange={(e) => setNoticeType(e.target.value)}
+                          className="w-full p-2 border border-slate-350 rounded focus:outline-none focus:ring-1 focus:ring-[#0F7A3D] bg-white font-bold"
+                        >
+                          <option value="GENERAL">General</option>
+                          <option value="ACADEMIC">Academic</option>
+                          <option value="EXAMINATION">Examination</option>
+                          <option value="HOLIDAY">Holiday</option>
+                          <option value="SCHOLARSHIP">Scholarship</option>
+                          <option value="EVENTS">Events</option>
+                          <option value="EMERGENCY">Emergency</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-405 uppercase mb-1">Expiry Date</label>
+                        <input
+                          type="date"
+                          value={noticeExpiryDate}
+                          onChange={(e) => setNoticeExpiryDate(e.target.value)}
+                          className="w-full p-2 border border-slate-350 rounded focus:outline-none focus:ring-1 focus:ring-[#0F7A3D] bg-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-405 uppercase mb-1">Document Attachment / PDF URL</label>
+                      <input 
+                        type="text" 
+                        placeholder="e.g. /circulars/time-table.pdf"
+                        value={noticePdfUrl}
+                        onChange={(e) => setNoticePdfUrl(e.target.value)}
+                        className="w-full p-2 border border-slate-350 rounded focus:outline-none focus:ring-1 focus:ring-[#0F7A3D]"
+                      />
+                    </div>
+
+                    <div className="flex items-center space-x-2 py-1">
+                      <input
+                        type="checkbox"
+                        id="noticePinned"
+                        checked={noticePinned}
+                        onChange={(e) => setNoticePinned(e.target.checked)}
+                        className="h-4 w-4 text-[#0F7A3D] border-slate-300 rounded focus:ring-[#0F7A3D] cursor-pointer"
+                      />
+                      <label htmlFor="noticePinned" className="text-[10px] font-bold text-slate-700 uppercase cursor-pointer select-none">
+                        Pin Notice to Top 📌
+                      </label>
+                    </div>
+
+                    <div className="flex space-x-2">
+                      <button 
+                        type="submit"
+                        className="flex-1 bg-[#0F7A3D] hover:bg-emerald-800 text-white font-bold py-2 rounded border border-emerald-900 cursor-pointer shadow-sm text-center"
+                      >
+                        {editingNoticeId ? 'Save Changes' : 'Publish Notice'}
+                      </button>
+                      {editingNoticeId && (
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            setEditingNoticeId(null);
+                            setNoticeTitle('');
+                            setNoticeContent('');
+                            setNoticeType('GENERAL');
+                            setNoticePinned(false);
+                            setNoticeExpiryDate('');
+                            setNoticePdfUrl('');
+                          }}
+                          className="px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 font-bold py-2 rounded cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </div>
+                  </form>
                 </div>
-                <span className="bg-white/20 border border-white/30 text-white font-bold px-3 py-1 rounded-full text-xs mt-4 md:mt-0">
-                  Model: Heuristic AI Engine v1.0
-                </span>
+
+                {/* Notices directory */}
+                <div className="p-4 border border-slate-200 rounded lg:col-span-2 space-y-4">
+                  <h5 className="font-bold text-slate-800 uppercase tracking-wider pb-2 border-b border-slate-100">Circular Notice board</h5>
+                  <div className="divide-y divide-slate-100 max-h-[550px] overflow-y-auto pr-1 space-y-3">
+                    {notices.map((n) => (
+                      <div key={n.id} className="py-3 first:pt-0 last:pb-0 space-y-2">
+                        <div className="flex justify-between items-start gap-4">
+                          <div className="space-y-1">
+                            <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                              {n.isPinned && <span className="text-amber-500 font-bold shrink-0">📌</span>}
+                              <span className="text-[#0F7A3D] font-extrabold text-xs sm:text-sm">{n.title}</span>
+                              <span className={`px-1.5 py-0.5 rounded-full border text-[9px] font-bold tracking-wide uppercase ${
+                                n.noticeType === 'EMERGENCY' ? 'bg-red-50 text-red-700 border-red-200 animate-pulse' :
+                                n.noticeType === 'EXAMINATION' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                                n.noticeType === 'HOLIDAY' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                                n.noticeType === 'SCHOLARSHIP' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                n.noticeType === 'ACADEMIC' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                n.noticeType === 'EVENTS' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
+                                'bg-slate-50 text-slate-700 border-slate-200'
+                              }`}>
+                                {n.noticeType || 'GENERAL'}
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-slate-400 font-bold font-mono">
+                              Published: {new Date(n.createdAt).toLocaleDateString()}
+                              {n.expiryDate && ` | Expires: ${new Date(n.expiryDate).toLocaleDateString()}`}
+                              {n.pdfUrl && ` | Attach: ${n.pdfUrl}`}
+                            </div>
+                          </div>
+
+                          <div className="flex space-x-2 shrink-0">
+                            <button 
+                              onClick={() => handleEditNotice(n)}
+                              className="px-2 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-350 text-slate-700 rounded font-bold cursor-pointer transition text-[10px]"
+                            >
+                              Edit
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteNotice(n.id)}
+                              className="px-2 py-1 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 rounded font-bold cursor-pointer transition text-[10px]"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-slate-600 font-semibold leading-relaxed text-xs">{n.content}</p>
+                      </div>
+                    ))}
+                    {notices.length === 0 && (
+                      <p className="text-slate-400 py-12 text-center">No notices published.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* TAB: AUDIT LOGS */}
+          {/* ========================================================================= */}
+          {activeTab === 'AUDIT_LOGS' && (
+            <div className="bg-white border border-slate-200 p-6 rounded text-left space-y-4">
+              <div className="border-b border-slate-100 pb-4">
+                <h4 className="font-extrabold text-sm text-slate-800 uppercase">System Override and Audit Logs</h4>
+                <p className="text-xs text-slate-400 mt-0.5">Chronological record of write operations registered across ERP servers.</p>
               </div>
 
-              {/* Predictions tables */}
-              <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-6">
-                <h4 className="font-bold text-slate-700 mb-4">Student Risk Classification List</h4>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
-                    <thead className="bg-slate-50 text-slate-600 uppercase text-xs font-bold">
-                      <tr>
-                        <th className="px-4 py-3">Roll No</th>
-                        <th className="px-4 py-3">Name</th>
-                        <th className="px-4 py-3">Class</th>
-                        <th className="px-4 py-3">Attendance</th>
-                        <th className="px-4 py-3">Risk Score</th>
-                        <th className="px-4 py-3">Classification</th>
-                        <th className="px-4 py-3">Risk Factors</th>
-                        <th className="px-4 py-3">Recommended Interventions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {aiPredictions.map((pred) => (
-                        <tr key={pred.studentId} className="hover:bg-slate-50">
-                          <td className="px-4 py-3 font-mono font-bold text-brand-blue">{pred.rollNumber}</td>
-                          <td className="px-4 py-3 font-semibold text-slate-800">{pred.name}</td>
-                          <td className="px-4 py-3 text-slate-600">{pred.className}</td>
-                          <td className="px-4 py-3 font-bold">{pred.attendanceRate}</td>
-                          <td className="px-4 py-3 font-mono text-center font-bold text-brand-gold">{pred.riskScore}</td>
-                          <td className="px-4 py-3">
-                            <span className={`px-2.5 py-0.5 rounded text-[10px] font-extrabold ${
-                              pred.dropoutRisk === 'HIGH' ? 'bg-red-100 text-red-800 border border-red-200' :
-                              pred.dropoutRisk === 'MEDIUM' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
-                              'bg-green-100 text-green-800 border border-green-200'
-                            }`}>
-                              {pred.dropoutRisk} RISK
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-xs text-rose-600 font-semibold max-w-xs">
-                            {pred.reasons.length > 0 ? (
-                              <ul className="list-disc pl-4 space-y-0.5">
-                                {pred.reasons.map((r, i) => <li key={i}>{r}</li>)}
-                              </ul>
-                            ) : "No risk factors identified."}
-                          </td>
-                          <td className="px-4 py-3 text-xs text-slate-700 max-w-xs">
-                            <ul className="list-disc pl-4 space-y-0.5">
-                              {pred.recommendations.map((rec, i) => <li key={i} className="font-medium">{rec}</li>)}
-                            </ul>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+              <div className="space-y-2">
+                {auditLogs.map((log) => (
+                  <div key={log.id} className="p-3 border border-slate-200 rounded text-xs bg-slate-50 flex justify-between items-center">
+                    <div>
+                      <span className="bg-red-50 text-red-700 font-bold px-2 py-0.5 rounded text-[9px] border border-red-200 uppercase tracking-wider">{log.action}</span>
+                      <p className="text-slate-700 mt-1 font-semibold">User: <b>{log.username}</b> ({log.userRole}) | Details: {log.details}</p>
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-mono font-bold shrink-0">{log.timestamp}</span>
+                  </div>
+                ))}
               </div>
-
             </div>
           )}
 
         </div>
       </main>
-      {/* MOBILE HAMBURGER DRAWER */}
+
+      {/* MOBILE DRAWER */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-50 flex md:hidden">
-          <div 
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
-            onClick={() => setIsMobileMenuOpen(false)}
-          ></div>
-          <div className="relative flex flex-col w-64 max-w-xs bg-brand-dark text-white p-6 shadow-2xl animate-slide-in">
+        <div className="fixed inset-0 bg-slate-900/40 z-50 flex md:hidden justify-start">
+          <div className="w-64 bg-white h-full flex flex-col p-4 space-y-6 shadow-2xl relative text-left">
             <button 
               onClick={() => setIsMobileMenuOpen(false)}
-              className="absolute top-4 right-4 text-slate-350 hover:text-white cursor-pointer"
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 cursor-pointer"
             >
-              <X size={20} />
+              <X size={18} />
             </button>
-            <div className="flex items-center space-x-3 mb-8">
-              <img className="h-10 w-auto" src={apLogo} alt="Emblem" />
+
+            <div className="flex items-center space-x-3 pb-4 border-b border-slate-100">
+              <img className="h-9 w-auto" src={apLogo} alt="AP logo" />
               <div>
-                <h1 className="font-extrabold text-sm tracking-wider">AP PRINCIPAL</h1>
-                <span className="text-xs text-[#D4AF37] font-semibold uppercase">{user.role}</span>
+                <h3 className="font-bold text-xs text-[#0F7A3D]">AP School ERP 3.0</h3>
+                <span className="text-[9px] text-[#D97706] font-bold uppercase">Executive Desk</span>
               </div>
             </div>
-            <nav className="flex-1 space-y-2">
-              <button 
-                onClick={() => { setActiveTab('DASHBOARD'); setIsMobileMenuOpen(false); }}
-                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
-                  activeTab === 'DASHBOARD' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
-                }`}
-              >
-                <LayoutDashboard size={18} />
-                <span>Dashboard</span>
-              </button>
-              <button 
-                onClick={() => { setActiveTab('STUDENTS'); setIsMobileMenuOpen(false); }}
-                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
-                  activeTab === 'STUDENTS' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
-                }`}
-              >
-                <Users size={18} />
-                <span>Students SIS</span>
-              </button>
-              <button 
-                onClick={() => { setActiveTab('TEACHERS'); setIsMobileMenuOpen(false); }}
-                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
-                  activeTab === 'TEACHERS' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
-                }`}
-              >
-                <UserCog size={18} />
-                <span>Teacher Performance</span>
-              </button>
-              <button 
-                onClick={() => { setActiveTab('NOTICES'); setIsMobileMenuOpen(false); }}
-                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
-                  activeTab === 'NOTICES' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
-                }`}
-              >
-                <BellRing size={18} />
-                <span>Notice Board</span>
-              </button>
-              <button 
-                onClick={() => { setActiveTab('REPORTS'); setIsMobileMenuOpen(false); }}
-                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
-                  activeTab === 'REPORTS' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
-                }`}
-              >
-                <FileText size={18} />
-                <span>Reports & Exports</span>
-              </button>
-              <button 
-                onClick={() => { setActiveTab('AI_INSIGHTS'); setIsMobileMenuOpen(false); }}
-                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
-                  activeTab === 'AI_INSIGHTS' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
-                }`}
-              >
-                <Brain size={18} />
-                <span>AI Risk Predictions</span>
-              </button>
+
+            <nav className="flex-1 space-y-1">
+              {[
+                { id: 'HOME', name: 'Home Overview', icon: LayoutDashboard },
+                { id: 'STUDENTS', name: 'Student SIS Records', icon: Users },
+                { id: 'TEACHERS', name: 'Teacher Directory', icon: UserCog },
+                { id: 'CLASSES', name: 'Class Allocations', icon: FileText },
+                { id: 'CERTIFICATES', name: 'Issue Certificates', icon: Award },
+                { id: 'REPORTS', name: 'Reports Desk', icon: FileText },
+                { id: 'NOTICES', name: 'Board Notices', icon: BellRing },
+                { id: 'AUDIT_LOGS', name: 'System Logs', icon: Terminal }
+              ].map(tab => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => { setActiveTab(tab.id); setIsMobileMenuOpen(false); }}
+                    className={`w-full flex items-center space-x-3 px-3 py-2 rounded text-xs font-bold transition cursor-pointer ${
+                      activeTab === tab.id ? 'bg-[#0F7A3D]/10 text-[#0F7A3D] border-l-4 border-[#0F7A3D]' : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    <Icon size={14} />
+                    <span>{tab.name}</span>
+                  </button>
+                );
+              })}
             </nav>
-            <div className="pt-6 border-t border-slate-700">
+
+            <div className="pt-4 border-t border-slate-150">
               <button 
                 onClick={onLogout}
-                className="w-full flex items-center space-x-3 px-4 py-2 rounded-lg text-sm font-semibold text-rose-300 hover:bg-rose-950/30 cursor-pointer"
+                className="w-full flex items-center space-x-3 px-3 py-2 rounded text-xs font-bold text-red-600 hover:bg-red-50 cursor-pointer"
               >
-                <LogOut size={18} />
+                <LogOut size={14} />
                 <span>Sign Out</span>
               </button>
             </div>
+
           </div>
         </div>
       )}

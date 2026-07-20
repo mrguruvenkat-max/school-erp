@@ -64,6 +64,31 @@ router.get('/timetable/:classId', authenticateToken, async (req, res) => {
   }
 });
 
+// 3b. Get Public Notice Board / Announcements (No Auth Required)
+router.get('/public/notices', async (req, res) => {
+  try {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const list = await prisma.notification.findMany({
+      where: {
+        userId: null,
+        category: "NOTICE_BOARD",
+        OR: [
+          { expiryDate: null },
+          { expiryDate: { gte: todayStr } }
+        ]
+      },
+      orderBy: [
+        { isPinned: 'desc' },
+        { createdAt: 'desc' }
+      ]
+    });
+    res.json(list);
+  } catch (error) {
+    console.error("Fetch public notices error:", error);
+    res.status(500).json({ error: "Internal server error fetching public notices" });
+  }
+});
+
 // 4. Get Notice Board / Announcements
 router.get('/notices', authenticateToken, async (req, res) => {
   try {
@@ -73,7 +98,10 @@ router.get('/notices', authenticateToken, async (req, res) => {
         userId: null,
         category: "NOTICE_BOARD"
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: [
+        { isPinned: 'desc' },
+        { createdAt: 'desc' }
+      ]
     });
     res.json(list);
   } catch (error) {
@@ -82,9 +110,9 @@ router.get('/notices', authenticateToken, async (req, res) => {
   }
 });
 
-// 5. Post Announcement (Principal / Admin Only)
-router.post('/notices', authenticateToken, requireRole(['PRINCIPAL']), async (req, res) => {
-  const { title, content } = req.body;
+// 5. Post Announcement (Principal & Computer Operator)
+router.post('/notices', authenticateToken, requireRole(['PRINCIPAL', 'COMPUTER_OPERATOR']), async (req, res) => {
+  const { title, content, isPinned, expiryDate, pdfUrl, noticeType } = req.body;
 
   if (!title || !content) {
     return res.status(400).json({ error: "Title and content are required" });
@@ -96,7 +124,11 @@ router.post('/notices', authenticateToken, requireRole(['PRINCIPAL']), async (re
         userId: null, // Global broadcast
         title,
         content,
-        category: "NOTICE_BOARD"
+        category: "NOTICE_BOARD",
+        isPinned: isPinned === true || isPinned === 'true',
+        expiryDate: expiryDate || null,
+        pdfUrl: pdfUrl || null,
+        noticeType: noticeType || "GENERAL"
       }
     });
 
@@ -114,6 +146,79 @@ router.post('/notices', authenticateToken, requireRole(['PRINCIPAL']), async (re
   } catch (error) {
     console.error("Create notice error:", error);
     res.status(500).json({ error: "Internal server error publishing notice" });
+  }
+});
+
+// 5b. Update Announcement (Principal & Computer Operator)
+router.put('/notices/:id', authenticateToken, requireRole(['PRINCIPAL', 'COMPUTER_OPERATOR']), async (req, res) => {
+  const { id } = req.params;
+  const { title, content, isPinned, expiryDate, pdfUrl, noticeType } = req.body;
+
+  try {
+    const noticeIdInt = parseInt(id);
+    const existing = await prisma.notification.findUnique({ where: { id: noticeIdInt } });
+
+    if (!existing) {
+      return res.status(404).json({ error: "Notice not found" });
+    }
+
+    const updated = await prisma.notification.update({
+      where: { id: noticeIdInt },
+      data: {
+        title: title !== undefined ? title : existing.title,
+        content: content !== undefined ? content : existing.content,
+        isPinned: isPinned !== undefined ? (isPinned === true || isPinned === 'true') : existing.isPinned,
+        expiryDate: expiryDate !== undefined ? expiryDate : existing.expiryDate,
+        pdfUrl: pdfUrl !== undefined ? pdfUrl : existing.pdfUrl,
+        noticeType: noticeType !== undefined ? noticeType : existing.noticeType
+      }
+    });
+
+    // Audit Log
+    await prisma.auditLog.create({
+      data: {
+        action: "NOTICE_UPDATE",
+        userRole: req.user.role,
+        username: req.user.username,
+        details: `Updated notice ID ${noticeIdInt}: "${updated.title}"`
+      }
+    });
+
+    res.json({ success: true, notice: updated });
+  } catch (error) {
+    console.error("Update notice error:", error);
+    res.status(500).json({ error: "Internal server error updating notice" });
+  }
+});
+
+// 5c. Delete Announcement (Principal & Computer Operator)
+router.delete('/notices/:id', authenticateToken, requireRole(['PRINCIPAL', 'COMPUTER_OPERATOR']), async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const noticeIdInt = parseInt(id);
+    const existing = await prisma.notification.findUnique({ where: { id: noticeIdInt } });
+
+    if (!existing) {
+      return res.status(404).json({ error: "Notice not found" });
+    }
+
+    await prisma.notification.delete({ where: { id: noticeIdInt } });
+
+    // Audit Log
+    await prisma.auditLog.create({
+      data: {
+        action: "NOTICE_DELETE",
+        userRole: req.user.role,
+        username: req.user.username,
+        details: `Deleted notice ID ${noticeIdInt}: "${existing.title}"`
+      }
+    });
+
+    res.json({ success: true, message: "Notice deleted successfully" });
+  } catch (error) {
+    console.error("Delete notice error:", error);
+    res.status(500).json({ error: "Internal server error deleting notice" });
   }
 });
 

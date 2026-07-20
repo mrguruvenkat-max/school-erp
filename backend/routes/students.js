@@ -39,7 +39,8 @@ router.get('/profile/:id', authenticateToken, async (req, res) => {
       where: { id: studentIdInt },
       include: {
         class: true,
-        parent: true
+        parent: true,
+        certificates: true
       }
     });
 

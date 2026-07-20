@@ -9,7 +9,7 @@ export async function parseResponse(response) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Request failed');
       } catch (e) {
-        throw new Error(e.message || 'Request failed');
+        throw new Error(e.message || 'Request failed', { cause: e });
       }
     }
     const text = await response.text();

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Users, PlusCircle, Edit, Trash2, Calendar, FileText, Award, LogOut, Check, X, ClipboardList, Key, CheckSquare, Upload, Download, Menu
+  Users, PlusCircle, Edit, Trash2, Calendar, FileText, Award, LogOut, Check, X, ClipboardList, Key, CheckSquare, Upload, Download, Menu, BellRing
 } from 'lucide-react';
 import apLogo from '../assets/ap-logo.png';
 import { API_URL, parseResponse } from '../config/api';
@@ -62,6 +62,17 @@ export default function OperatorPortal({ user, token, onLogout }) {
   const [certType, setCertType] = useState('BONAFIDE');
   const [certResult, setCertResult] = useState(null);
 
+  // Notices states
+  const [notices, setNotices] = useState([]);
+  const [noticeTitle, setNoticeTitle] = useState('');
+  const [noticeContent, setNoticeContent] = useState('');
+  const [noticeSuccess, setNoticeSuccess] = useState(false);
+  const [editingNoticeId, setEditingNoticeId] = useState(null);
+  const [noticeType, setNoticeType] = useState('GENERAL');
+  const [noticePinned, setNoticePinned] = useState(false);
+  const [noticeExpiryDate, setNoticeExpiryDate] = useState('');
+  const [noticePdfUrl, setNoticePdfUrl] = useState('');
+
   // Teachers mock list for timetable
   const teachers = [
     { id: 1, name: "K. Ranga Rao", role: "SUBJECT_TEACHER" },
@@ -69,10 +80,98 @@ export default function OperatorPortal({ user, token, onLogout }) {
     { id: 3, name: "Ch. Ram Babu", role: "LAB_TEACHER" }
   ];
 
+  const fetchNotices = async () => {
+    const headers = { 'Authorization': `Bearer ${token}` };
+    try {
+      const resNotices = await fetch(`${API_URL}/api/academic/notices`, { headers });
+      const noticesData = await parseResponse(resNotices);
+      setNotices(noticesData);
+    } catch (err) {
+      console.error("Error fetching notices:", err);
+    }
+  };
+
   useEffect(() => {
     fetchMetadata();
     fetchStudents();
+    fetchNotices();
   }, [token]);
+
+  const handlePublishNotice = async (e) => {
+    e.preventDefault();
+    setNoticeSuccess(false);
+
+    const bodyData = {
+      title: noticeTitle,
+      content: noticeContent,
+      noticeType,
+      isPinned: noticePinned,
+      expiryDate: noticeExpiryDate || null,
+      pdfUrl: noticePdfUrl || null
+    };
+
+    try {
+      let response;
+      if (editingNoticeId) {
+        response = await fetch(`${API_URL}/api/academic/notices/${editingNoticeId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(bodyData)
+        });
+      } else {
+        response = await fetch(`${API_URL}/api/academic/notices`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(bodyData)
+        });
+      }
+
+      await parseResponse(response);
+      setNoticeTitle('');
+      setNoticeContent('');
+      setNoticeType('GENERAL');
+      setNoticePinned(false);
+      setNoticeExpiryDate('');
+      setNoticePdfUrl('');
+      setEditingNoticeId(null);
+      setNoticeSuccess(true);
+      fetchNotices();
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Operation failed");
+    }
+  };
+
+  const handleEditNotice = (n) => {
+    setEditingNoticeId(n.id);
+    setNoticeTitle(n.title);
+    setNoticeContent(n.content);
+    setNoticeType(n.noticeType || 'GENERAL');
+    setNoticePinned(n.isPinned || false);
+    setNoticeExpiryDate(n.expiryDate || '');
+    setNoticePdfUrl(n.pdfUrl || '');
+  };
+
+  const handleDeleteNotice = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this notice?")) return;
+    try {
+      const response = await fetch(`${API_URL}/api/academic/notices/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      await parseResponse(response);
+      fetchNotices();
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Failed to delete notice");
+    }
+  };
 
   const fetchMetadata = async () => {
     const headers = { 'Authorization': `Bearer ${token}` };
@@ -542,6 +641,17 @@ export default function OperatorPortal({ user, token, onLogout }) {
           >
             <FileText size={18} className="shrink-0" />
             <span className="hidden lg:inline">Issue Certificates</span>
+          </button>
+
+          <button 
+            onClick={() => setActiveTab('NOTICES')}
+            className={`w-full flex items-center lg:space-x-3 px-3 py-2.5 lg:px-4 rounded-lg text-xs font-bold transition-all cursor-pointer justify-center lg:justify-start ${
+              activeTab === 'NOTICES' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
+            }`}
+            title="Notice Board Manager"
+          >
+            <BellRing size={18} className="shrink-0" />
+            <span className="hidden lg:inline">Notice Board Manager</span>
           </button>
         </nav>
 
@@ -1398,6 +1508,15 @@ export default function OperatorPortal({ user, token, onLogout }) {
                 <FileText size={18} />
                 <span>Issue Certificates</span>
               </button>
+              <button 
+                onClick={() => { setActiveTab('NOTICES'); setIsMobileMenuOpen(false); }}
+                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                  activeTab === 'NOTICES' ? 'bg-brand-blue text-white shadow-md' : 'text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                <BellRing size={18} />
+                <span>Notice Board Manager</span>
+              </button>
             </nav>
             <div className="pt-6 border-t border-slate-700">
               <button 
@@ -1411,6 +1530,189 @@ export default function OperatorPortal({ user, token, onLogout }) {
           </div>
         </div>
       )}
+
+          {/* ========================================================================= */}
+          {/* TAB: NOTICES */}
+          {/* ========================================================================= */}
+          {activeTab === 'NOTICES' && (
+            <div className="bg-white border border-slate-200 p-6 rounded-xl text-left space-y-6">
+              
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 text-xs">
+                
+                {/* Publish notice */}
+                <div className="p-4 border border-slate-200 rounded-lg space-y-4 h-fit">
+                  <h5 className="font-bold text-slate-800 uppercase tracking-wider pb-2 border-b border-slate-100">
+                    {editingNoticeId ? 'Edit notice details' : 'Publish notice board alert'}
+                  </h5>
+                  
+                  {noticeSuccess && (
+                    <div className="bg-emerald-50 border-l-4 border-emerald-600 p-2 text-emerald-800 font-bold">
+                      Notice saved successfully and updated on homepage!
+                    </div>
+                  )}
+
+                  <form onSubmit={handlePublishNotice} className="space-y-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-405 uppercase mb-1">Notice Title</label>
+                      <input 
+                        type="text" 
+                        required
+                        placeholder="e.g. Unit Test-I Time Table Published"
+                        value={noticeTitle}
+                        onChange={(e) => setNoticeTitle(e.target.value)}
+                        className="w-full p-2 border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-brand-blue"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-405 uppercase mb-1">Alert Content</label>
+                      <textarea 
+                        required
+                        placeholder="Notice details..."
+                        value={noticeContent}
+                        onChange={(e) => setNoticeContent(e.target.value)}
+                        className="w-full p-2 border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-brand-blue"
+                        rows={4}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-405 uppercase mb-1">Notice Type</label>
+                        <select
+                          value={noticeType}
+                          onChange={(e) => setNoticeType(e.target.value)}
+                          className="w-full p-2 border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-brand-blue bg-white font-bold"
+                        >
+                          <option value="GENERAL">General</option>
+                          <option value="ACADEMIC">Academic</option>
+                          <option value="EXAMINATION">Examination</option>
+                          <option value="HOLIDAY">Holiday</option>
+                          <option value="SCHOLARSHIP">Scholarship</option>
+                          <option value="EVENTS">Events</option>
+                          <option value="EMERGENCY">Emergency</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-405 uppercase mb-1">Expiry Date</label>
+                        <input
+                          type="date"
+                          value={noticeExpiryDate}
+                          onChange={(e) => setNoticeExpiryDate(e.target.value)}
+                          className="w-full p-2 border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-brand-blue bg-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-405 uppercase mb-1">Document Attachment / PDF URL</label>
+                      <input 
+                        type="text" 
+                        placeholder="e.g. /circulars/time-table.pdf"
+                        value={noticePdfUrl}
+                        onChange={(e) => setNoticePdfUrl(e.target.value)}
+                        className="w-full p-2 border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-brand-blue"
+                      />
+                    </div>
+
+                    <div className="flex items-center space-x-2 py-1">
+                      <input
+                        type="checkbox"
+                        id="noticePinned"
+                        checked={noticePinned}
+                        onChange={(e) => setNoticePinned(e.target.checked)}
+                        className="h-4 w-4 text-brand-blue border-slate-300 rounded focus:ring-brand-blue cursor-pointer"
+                      />
+                      <label htmlFor="noticePinned" className="text-[10px] font-bold text-slate-700 uppercase cursor-pointer select-none">
+                        Pin Notice to Top 📌
+                      </label>
+                    </div>
+
+                    <div className="flex space-x-2">
+                      <button 
+                        type="submit"
+                        className="flex-1 bg-brand-blue hover:bg-brand-blue/90 text-white font-bold py-2 rounded border border-blue-900 cursor-pointer shadow-sm text-center"
+                      >
+                        {editingNoticeId ? 'Save Changes' : 'Publish Notice'}
+                      </button>
+                      {editingNoticeId && (
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            setEditingNoticeId(null);
+                            setNoticeTitle('');
+                            setNoticeContent('');
+                            setNoticeType('GENERAL');
+                            setNoticePinned(false);
+                            setNoticeExpiryDate('');
+                            setNoticePdfUrl('');
+                          }}
+                          className="px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 font-bold py-2 rounded cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </div>
+                  </form>
+                </div>
+
+                {/* Notices directory */}
+                <div className="p-4 border border-slate-200 rounded-lg lg:col-span-2 space-y-4">
+                  <h5 className="font-bold text-slate-800 uppercase tracking-wider pb-2 border-b border-slate-100">Circular Notice board</h5>
+                  <div className="divide-y divide-slate-100 max-h-[550px] overflow-y-auto pr-1 space-y-3">
+                    {notices.map((n) => (
+                      <div key={n.id} className="py-3 first:pt-0 last:pb-0 space-y-2">
+                        <div className="flex justify-between items-start gap-4">
+                          <div className="space-y-1">
+                            <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                              {n.isPinned && <span className="text-amber-500 font-bold shrink-0">📌</span>}
+                              <span className="text-brand-blue font-extrabold text-xs sm:text-sm">{n.title}</span>
+                              <span className={`px-1.5 py-0.5 rounded-full border text-[9px] font-bold tracking-wide uppercase ${
+                                n.noticeType === 'EMERGENCY' ? 'bg-red-50 text-red-700 border-red-200 animate-pulse' :
+                                n.noticeType === 'EXAMINATION' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                                n.noticeType === 'HOLIDAY' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                                n.noticeType === 'SCHOLARSHIP' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                n.noticeType === 'ACADEMIC' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                n.noticeType === 'EVENTS' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
+                                'bg-slate-50 text-slate-700 border-slate-200'
+                              }`}>
+                                {n.noticeType || 'GENERAL'}
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-slate-400 font-bold font-mono">
+                              Published: {new Date(n.createdAt).toLocaleDateString()}
+                              {n.expiryDate && ` | Expires: ${new Date(n.expiryDate).toLocaleDateString()}`}
+                              {n.pdfUrl && ` | Attach: ${n.pdfUrl}`}
+                            </div>
+                          </div>
+
+                          <div className="flex space-x-2 shrink-0">
+                            <button 
+                              onClick={() => handleEditNotice(n)}
+                              className="px-2 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-300 text-slate-700 rounded font-bold cursor-pointer transition text-[10px]"
+                            >
+                              Edit
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteNotice(n.id)}
+                              className="px-2 py-1 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 rounded font-bold cursor-pointer transition text-[10px]"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-slate-600 font-semibold leading-relaxed text-xs">{n.content}</p>
+                      </div>
+                    ))}
+                    {notices.length === 0 && (
+                      <p className="text-slate-400 py-12 text-center">No notices published.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
     </div>
   );

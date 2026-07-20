@@ -166,14 +166,20 @@ model Complaint {
 }
 
 model Notification {
-  id        Int      @id @default(autoincrement())
-  userId    Int?     // Target user (null means all users / notice board)
-  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title     String
-  content   String
-  category  String   // "GENERAL", "NOTICE_BOARD", "ATTENDANCE", "EXAM"
-  isRead    Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id            Int      @id @default(autoincrement())
+  userId        Int?     // Target user (null means all users / notice board)
+  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title         String
+  content       String
+  category      String   // "GENERAL", "NOTICE_BOARD", "ATTENDANCE", "EXAM"
+  isRead        Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  // Official Notice attributes
+  isPinned      Boolean  @default(false)
+  expiryDate    String?
+  pdfUrl        String?
+  noticeType    String   @default("GENERAL") // "ACADEMIC", "EXAMINATION", "HOLIDAY", "SCHOLARSHIP", "EVENTS", "EMERGENCY", "GENERAL"
 
   @@map("notifications")
 }
